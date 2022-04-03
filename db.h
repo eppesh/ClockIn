@@ -20,9 +20,10 @@ namespace clock_in
 // eg: 20220402 网格坐标(6,0) 当天完成的任务数4
 struct GridInfo
 {
-    std::string date;                   // 网格对应的日期
-    POINT coord;                        // 坐标点
-    int tasks;                          // 该对应日期的任务完成数量
+    int date;                               // 网格对应的日期
+    int x;                                  // 坐标点
+    int y;                                  // 坐标点
+    int tasks;                              // 该对应日期的任务完成数量
 };
 
 class DB
@@ -30,9 +31,8 @@ class DB
 public:
     DB();
     ~DB();
-    bool Put(GridInfo &grid_info);      // 将网格信息写入数据库
-    GridInfo Get(std::string key, bool &flag);      // 按日期获取网格信息
-    bool Get(GridInfo &grid_info);      // 按日期获取网格信息
+    bool Put(GridInfo &grid_info);          // 将网格信息写入数据库
+    bool Get(GridInfo &grid_info);          // 按日期获取网格信息
     
 private:
     leveldb::DB *db_;

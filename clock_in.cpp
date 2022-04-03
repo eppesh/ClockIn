@@ -26,6 +26,8 @@ void UI::Init()
     grid_.resize(grid_rows_, std::vector<int>(grid_columns_, 0));
     
     coordinate_ = { 0,0 };
+    GetGridCoord();             // 得到当天的坐标
+
     now_date_ = sean::Function::GetNowDate();
     // 从数据库中获取当前月份截止到今天之间的所有网格信息
     int first_date = sean::Function::GetDayInMonth(1);  // 该月的第1天    
@@ -33,41 +35,20 @@ void UI::Init()
     
     for (int i = first_date; i <= now_date_; ++i)
     {
-        //GridInfo grid_info;
-        //grid_info.date = std::to_string(i);
-        //if (db_.Get(grid_info))
-        //{
-        //    grid_[grid_info.coord.x][grid_info.coord.y] = grid_info.tasks;
-        //}
-        //else if (i == now_date_)
-        //{
-        //    // 当天没更新过的话则只获取坐标
-        //    GetGridCoord();
-        //}
-        bool flag = false;
-        GridInfo grid_info = db_.Get(std::to_string(i), flag);
-        if (flag)
+        GridInfo grid_info;
+        grid_info.date = i;
+        if (db_.Get(grid_info))
         {
-            grid_[grid_info.coord.x][grid_info.coord.y] = grid_info.tasks;
-        }
-        else if (i == now_date_)
-        {
-            // 当天没更新过的话则只获取坐标
-            GetGridCoord();
+            grid_[grid_info.x][grid_info.y] = grid_info.tasks;
+            // 如果是当天打卡后重启,需恢复已打卡的状态
+            if (i == now_date_)
+            {
+                // 还需要知道是哪些事项打过卡了：TODO: 用位来表示
+                // 打上勾+不能重复打卡
+            }
         }
     }
 
-
-    //UpdateCoordinate();
-    //GetGridCoord(20220423);
-    /*grid_rows_ = 7;
-    grid_columns_ = 6;
-    grid_block_size_ = 30;
-    grid_step_ = grid_block_size_ + 10;
-    grid_x_ = 20 + 150;
-    grid_y_ = 260 + 40;*/
-
-    
 
     // 网格中的灰色小方块:使用由浅到深的颜色的IMAGE来表示
     img_block0_.Resize(grid_block_size_, grid_block_size_);
@@ -146,19 +127,7 @@ void UI::Draw()
     roundrect(20, 260, 440, 630, 10, 10);
     
 
-    // 绘制网格
-    /*for (int j = 0; j < grid_rows_; ++j)
-    {
-        for (int i = 0; i < grid_columns_; ++i)
-        {
-            putimage(grid_x_ + grid_step_ * i, grid_y_ + grid_step_ * j, &img_block0_);
-        }
-    }*/
-    /*grid_[5][0] = 1;
-    grid_[6][0] = 2;
-    grid_[0][1] = 3;
-    grid_[1][2] = 4;
-    grid_[0][3] = 1;*/
+    // 绘制网格    
     DrawGrid();
 
     // 网格左侧的星期提示
@@ -173,39 +142,7 @@ void UI::Draw()
     drawtext(_T("Wed"), &rect_wednesday, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     RECT rect_friday = { 60, grid_y_ + 5 * grid_step_, 60 + 60, grid_y_ + 5 * grid_step_ + grid_block_size_ };
     drawtext(_T("Fri"), &rect_friday, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-
-    // 测试给方块上色
-    //int index = 0;
-    //for (int j = 0; j < grid_rows_; ++j)
-    //{
-    //    for (int i = 0; i < grid_columns_; ++i)
-    //    {
-    //        if (index == 0)
-    //        {
-    //            //putimage(start_x + width * i, start_y + width * j, &img_empty);
-    //            //putimage(start_x + width * i, start_y + width * j, &img_empty);
-    //        }
-    //        else if (index == 1)
-    //        {
-    //            //putimage(start_x + width * i, start_y + width * j, &img_count1);
-    //            putimage(grid_x_ + grid_step_ * j, grid_y_ + grid_step_ * i, &img_block1_);
-    //        }
-    //        else if (index == 2)
-    //        {
-    //            putimage(grid_x_ + grid_step_ * j, grid_y_ + grid_step_ * i, &img_block2_);
-    //        }
-    //        else if (index == 3)
-    //        {
-    //            putimage(grid_x_ + grid_step_ * j, grid_y_ + grid_step_ * i, &img_block3_);
-    //        }
-    //        else if (index == 4)
-    //        {
-    //            putimage(grid_x_ + grid_step_ * j, grid_y_ + grid_step_ * i, &img_block4_);
-    //        }
-    //        ++index;
-    //    }
-    //}
-
+        
     // 颜色说明(即打卡事项越多颜色越深)
     int test_x = grid_x_ + 10;
     int test_y = grid_y_ + 7 * grid_step_ + grid_block_size_ - 12;
@@ -318,8 +255,9 @@ void UI::Run()
             DrawGrid();
             // 将数据更新到数据库
             GridInfo grid_info;
-            grid_info.date = std::to_string(now_date_);
-            grid_info.coord = coordinate_;
+            grid_info.date = now_date_;
+            grid_info.x = coordinate_.x;
+            grid_info.y = coordinate_.y;
             grid_info.tasks = finished_tasks_;
             db_.Put(grid_info);
             break;
@@ -333,19 +271,12 @@ void UI::Run()
 
 void UI::DrawGrid()
 {
-    /*int start_position = 5;
-    int offset = start_position;*/
     setorigin(grid_x_, grid_y_);
     // 按时从上到下,从左到右的顺序遍历并绘制
     for (int i = 0; i < grid_rows_; ++i)
     {
         for (int j = 0; j < grid_columns_; ++j)
         {
-            //if (offset < 0) // 偏移到起始位置
-            //{
-            //    offset--;
-            //    continue;
-            //}
             switch (grid_[i][j])
             {
             case 0:
