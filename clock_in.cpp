@@ -15,59 +15,76 @@ UI::~UI()
 
 }
 
+void GetGridCoordTT(int date, int &x, int &y)
+{
+    int today = date;
+    // 获取当前月份的第一天,并判断它是星期几
+    int first_day_in_month = (today / 100) * 100 + 1;  // 该月的第1天
+    int begin_index = sean::Function::GetDayOfWeek(first_day_in_month);
+    int wday = sean::Function::GetDayOfWeek(today);
+
+    int offset = today - first_day_in_month;    // 当前日期相对于本月第一天的偏移
+
+    y = (begin_index + offset) / 7;        // 从该月第一天的星期开始偏移
+    x = wday;
+}
+
 void UI::Init()
 {
-    //sean::Function::CalculateBit(3);  // Test
+    // Test 造数据
+    //for (int i = 0; i < 30; ++i)
+    {
+        GridInfo grid_info;
+        grid_info.date = 20220105;
+        GetGridCoordTT(grid_info.date, grid_info.x, grid_info.y);
+        /*grid_info.x = 1;
+        grid_info.y = 1;*/
+        grid_info.tasks = 0x1100;
+        db_.Put(grid_info);
+
+        GridInfo grid_info1;
+        grid_info1.date = 20220215;
+        GetGridCoordTT(grid_info1.date, grid_info1.x, grid_info1.y);
+        /*grid_info.x = 3;
+        grid_info.y = 1;*/
+        grid_info1.tasks = 0x1110;
+        db_.Put(grid_info1);
+
+        GridInfo grid_info2;
+        grid_info2.date = 20220322;
+        GetGridCoordTT(grid_info2.date, grid_info2.x, grid_info2.y);
+        grid_info2.tasks = 0x1111;
+        db_.Put(grid_info2);
+
+        GridInfo grid_info4;
+        grid_info4.date = 20220402;
+        GetGridCoordTT(grid_info4.date, grid_info4.x, grid_info4.y);
+        grid_info4.tasks = 0x1000;
+        db_.Put(grid_info4);
+    }
+
 
     rect_btn_health_ = { 280, 40, 280 + 120, 40 + 40 };
     rect_btn_english_ = { 280, 90, 280 + 120, 90 + 40 };
     rect_btn_program_ = { 280, 140, 280 + 120, 140 + 40 };
     rect_btn_read_ = { 280, 190, 280 + 120, 190 + 40 };
     rect_btn_reset_ = { 30, 270, 30 + 80, 310 };
+    rect_btn_prev_ = { grid_x_, grid_y_ - grid_step_, grid_x_ + grid_block_size_, grid_y_ };
+    rect_btn_next_ = { grid_x_ + 5 * grid_step_, grid_y_ - grid_step_, grid_x_ + 5 * grid_step_ + grid_block_size_, grid_y_ };
+    rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
 
     grid_.resize(grid_rows_, std::vector<int>(grid_columns_, 0));
+    months_ = { "","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
     
     coordinate_ = { 0,0 };
     GetGridCoord();             // 得到当天的坐标
 
     now_date_ = sean::Function::GetNowDate();
-    // 从数据库中获取当前月份截止到今天之间的所有网格信息
-    int first_date = sean::Function::GetDayInMonth(1);  // 该月的第1天    
-    // 获取历史日期的网格信息
-    
-    for (int i = first_date; i <= now_date_; ++i)
-    {
-        GridInfo grid_info;
-        grid_info.date = i;
-        if (db_.Get(grid_info))
-        {
-            grid_[grid_info.x][grid_info.y] = grid_info.tasks;
-            // 如果是当天打卡后重启,需恢复已打卡的状态
-            if (i == now_date_)
-            {
-                finished_tasks_ = grid_info.tasks;
-                // 还需要知道是哪些事项打过卡了：TODO: 用位来表示
-                // 打上勾+不能重复打卡
-                if (grid_info.tasks & 0x1000)
-                {
-                    is_health_finished_ = true;
-                }
-                if (grid_info.tasks & 0x0100)
-                {
-                    is_english_finished_ = true;
-                }
-                if (grid_info.tasks & 0x0010)
-                {
-                    is_program_finished_ = true;
-                }
-                if (grid_info.tasks & 0x0001)
-                {
-                    is_read_finished_ = true;
-                }
-            }
-        }
-    }
+    display_month_ = now_date_ / 100;
 
+    // 从数据库中读取当月的历史数据
+    GetGridData(now_date_ / 10000, now_date_ / 100 % 100);
+    
 
     // 网格中的灰色小方块:使用由浅到深的颜色的IMAGE来表示
     img_block0_.Resize(grid_block_size_, grid_block_size_);
@@ -150,11 +167,18 @@ void UI::Draw()
     DrawGrid();
 
     // 网格左侧的星期提示
-    /*setfillcolor(RGB(18, 150, 219));
-    solidroundrect(280, 40, 280 + 120, 40 + 40, 8, 8);*/
     settextcolor(BLACK);
-    RECT rect_month = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
-    drawtext(_T("Mar"), &rect_month, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    //rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
+    TCHAR current_month[4] = { 0 };
+    //int month = now_date_ / 100 % 100;
+    //_stprintf_s(current_month, 4, _T("%s"), months_[month].c_str());
+    //memcpy_s(current_month, 4, months_[month].c_str(), 4);
+    //const char *m[13] = { "","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
+    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[now_date_ / 100 % 100].c_str(), -1, current_month, 4);
+    drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    drawtext(_T("<"), &rect_btn_prev_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    drawtext(_T(">"), &rect_btn_next_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     RECT rect_monday = { 60, grid_y_ + grid_step_, 60 + 60, grid_y_ + grid_step_ + grid_block_size_ };
     drawtext(_T("Mon"), &rect_monday, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     RECT rect_wednesday = { 60, grid_y_ + 3 * grid_step_, 60 + 60, grid_y_ + 3 * grid_step_ + grid_block_size_ };
@@ -173,23 +197,7 @@ void UI::Draw()
     putimage(test_x + 4 * grid_block_size_ + 40, test_y, &img_block4_);
     outtextxy(test_x + 5 * grid_block_size_ + 50, test_y, _T("More"));
 
-    // 若当天已部分打过卡,则显示
-    if (is_health_finished_)
-    {
-        outtextxy(30, 50, _T("√"));
-    }
-    if (is_english_finished_)
-    {
-        outtextxy(30, 100, _T("√"));
-    }
-    if (is_program_finished_)
-    {
-        outtextxy(30, 150, _T("√"));
-    }
-    if (is_read_finished_)
-    {
-        outtextxy(30, 200, _T("√"));
-    }
+    DrawUpdate();
 }
 
 void UI::Run()
@@ -208,80 +216,54 @@ void UI::Run()
             if (PtInRect(&rect_btn_health_, mouse))
             {
                 // TODO:  跨天要重置,暂时不支持
-                if (!is_health_finished_)
+                if (!is_health_finished_ && display_month_ == now_date_ / 100)
                 {
                     // 打卡响应
                     /*TCHAR health_notes[1024] = { 0 };
                     InputBox(health_notes, 1024, _T("Input the daily report about 'Health'."));*/
-                    /*finished_tasks_++;
-                    finished_tasks_ %= 5;*/
                     finished_tasks_ |= 0x1000;
                     is_health_finished_ = true;
                     outtextxy(30, 50, _T("√"));
-                    //date_ = _wtoi(health_notes);
-
-                    //POINT coord = GetCoordFromDate(date_);
-                    /*grid_[coord.x][coord.y] = finished_tasks_;
-                    DrawGrid();*/
                 }
                 
             }
             else if (PtInRect(&rect_btn_english_, mouse))
             {
-                if (!is_english_finished_)
+                if (!is_english_finished_ && display_month_ == now_date_ / 100)
                 {
                     /*TCHAR english_notes[1024] = { 0 };
                     InputBox(english_notes, 1024, _T("Input the daily report about 'English'."));*/
-                    /*finished_tasks_++;
-                    finished_tasks_ %= 5;*/
                     finished_tasks_ |= 0x0100;
                     is_english_finished_ = true;
                     outtextxy(30, 100, _T("√"));
-
-                    /*POINT coord = GetCoordFromDate(date_);
-                    grid_[coord.x][coord.y] = finished_tasks_;
-                    DrawGrid();*/
                 }
             }
             else if (PtInRect(&rect_btn_program_, mouse))
             {
-                if (!is_program_finished_)
+                if (!is_program_finished_ && display_month_ == now_date_ / 100)
                 {
                     /*TCHAR program_notes[1024] = { 0 };
                     InputBox(program_notes, 1024, _T("Input the daily report about 'Programming'."));*/
-                    /*finished_tasks_++;
-                    finished_tasks_ %= 5;*/
                     finished_tasks_ |= 0x0010;
                     is_program_finished_ = true;
                     outtextxy(30, 150, _T("√"));
-
-                    /*POINT coord = GetCoordFromDate(date_);
-                    grid_[coord.x][coord.y] = finished_tasks_;
-                    DrawGrid();*/
                 }
             }
             else if (PtInRect(&rect_btn_read_, mouse))
             {
-                if (!is_read_finished_)
+                if (!is_read_finished_ && display_month_ == now_date_ / 100)
                 {
                     /*TCHAR read_notes[1024] = { 0 };
                     InputBox(read_notes, 1024, _T("Input the daily report about 'Reading'."));*/
-                    /*finished_tasks_++;
-                    finished_tasks_ %= 5;*/
                     finished_tasks_ |= 0x0001;
                     is_read_finished_ = true;
                     outtextxy(30, 200, _T("√"));
-
-                    /*POINT coord = GetCoordFromDate(date_);
-                    grid_[coord.x][coord.y] = finished_tasks_;
-                    DrawGrid();*/
-                    /*DB db;
-                    db.Test();*/
                 }
             }
             else if (PtInRect(&rect_btn_reset_, mouse))
             {
-                if (is_health_finished_ || is_english_finished_ || is_program_finished_ || is_read_finished_)
+                if (display_month_ == now_date_ / 100 && (is_health_finished_ || is_english_finished_ 
+                    || is_program_finished_ || is_read_finished_))
                 {
                     is_health_finished_ = false;
                     is_english_finished_ = false;
@@ -289,18 +271,82 @@ void UI::Run()
                     is_read_finished_ = false;
                     finished_tasks_ = 0;
                     setfillcolor(RGB(242, 242, 241));
-                    solidrectangle(28, 50, 60, 235);
+                    solidrectangle(28, 50, 60, 235);    // 对勾区域
+                    setfillcolor(WHITE);    // 恢复成白色背景
                 }
             }
-            grid_[coordinate_.x][coordinate_.y] = finished_tasks_;
-            DrawGrid();
-            // 将数据更新到数据库
-            GridInfo grid_info;
-            grid_info.date = now_date_;
-            grid_info.x = coordinate_.x;
-            grid_info.y = coordinate_.y;
-            grid_info.tasks = finished_tasks_;
-            db_.Put(grid_info);
+            
+
+            if (display_month_ == now_date_ / 100 && (is_health_finished_ || is_english_finished_
+                || is_program_finished_ || is_read_finished_))
+            {
+                grid_[coordinate_.x][coordinate_.y] = finished_tasks_;
+                DrawGrid();
+                // 将数据更新到数据库
+                GridInfo grid_info;
+                grid_info.date = now_date_;
+                grid_info.x = coordinate_.x;
+                grid_info.y = coordinate_.y;
+                grid_info.tasks = finished_tasks_;
+                db_.Put(grid_info);
+            }
+            break;
+        }
+        case WM_LBUTTONUP:
+        {
+            if (PtInRect(&rect_btn_prev_, mouse))
+            {
+                // TODO: 切换到上一个月
+                GridInfo grid_info;
+                db_.GetFirstData(grid_info);
+                int first_date = grid_info.date;
+                // 只有数据库中第一条记录的年月小于当前年月才能切换到上一月(前面需有数据才行)
+                if (first_date / 100 < display_month_)
+                {
+                    int tmp_year = display_month_ / 100;
+                    int tmp_month = display_month_ % 100;
+                    tmp_month--;
+                    tmp_year = (tmp_month < 1) ? (tmp_year - 1) : tmp_year;
+                    tmp_month = (tmp_month == 0) ? (tmp_month + 1) : (tmp_month % 12);;
+                    display_month_ = tmp_year * 100 + tmp_month;
+                    // 读取上一月的数据
+                    GetGridData(display_month_ / 100, display_month_ % 100);
+                    DrawGrid();
+                    if (display_month_ == now_date_ / 100)
+                    {
+                        //DrawUpdate();
+                    }
+                    solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
+                    TCHAR current_month[4] = { 0 };                    
+                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);
+                    drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                }
+            }
+            else if (PtInRect(&rect_btn_next_, mouse))
+            {
+                // TODO: 切换到下一个月
+                // 当前显示年月不是当天所属年月时才能点击下一月
+                if (display_month_ != (now_date_ / 100))
+                {
+                    int tmp_year = display_month_ / 100;
+                    int tmp_month = display_month_ % 100;
+                    tmp_month++;
+                    tmp_year = (tmp_month > 12) ? (tmp_year + 1) : tmp_year;
+                    tmp_month = (tmp_month == 12) ? (tmp_month % 12 + 1) : (tmp_month % 12);
+                    display_month_ = tmp_year * 100 + tmp_month;
+                    // 读取下一月的数据
+                    GetGridData(display_month_ / 100, display_month_ % 100);
+                    DrawGrid();
+                    if (display_month_ == now_date_ / 100)
+                    {
+                        //DrawUpdate();
+                    }
+                    solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
+                    TCHAR current_month[4] = { 0 };
+                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);
+                    drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                }
+            }
             break;
         }
         default:
@@ -322,7 +368,6 @@ void UI::DrawGrid()
             {
             case 0:
             {
-                //putimage(grid_x_ + grid_step_ * j, grid_y_ + grid_step_ * i, &img_block0_);
                 putimage(grid_step_ * j, grid_step_ * i, &img_block0_);
                 break;
             }
@@ -358,9 +403,8 @@ void UI::GetGridCoord()
 {
     // 获取当前日期,并判断当前日期是这个月的第几天
     int today = sean::Function::GetNowDate();
-    //int mday = sean::Function::GetDayOfMonth();
     // 获取当前月份的第一天,并判断它是星期几
-    int first_day_in_month = sean::Function::GetDayInMonth(1);
+    int first_day_in_month = (today / 100) * 100 + 1;  // 该月的第1天
     int begin_index = sean::Function::GetDayOfWeek(first_day_in_month);
     int wday = sean::Function::GetDayOfWeek(today);
     
@@ -368,65 +412,92 @@ void UI::GetGridCoord()
     
     coordinate_.y = (begin_index + offset) / 7;        // 从该月第一天的星期开始偏移
     coordinate_.x = wday;
-    std::cout << "Today: " << today << "; First: " << first_day_in_month
-        << "; wday: " << wday << "; offset: " << offset << std::endl;
-    std::cout << "(" << coordinate_.x << "," << coordinate_.y << ")" << std::endl;
 }
 
 
-void UI::GetGridCoord(int date)
+//void UI::GetGridCoord(int date)
+//{
+//    int today = date;
+//    // 获取当前月份的第一天,并判断它是星期几
+//    int first_day_in_month = (today / 100) * 100 + 1;  // 该月的第1天
+//    int begin_index = sean::Function::GetDayOfWeek(first_day_in_month);
+//    int wday = sean::Function::GetDayOfWeek(today);
+//
+//    int offset = today - first_day_in_month;    // 当前日期相对于本月第一天的偏移
+//
+//    coordinate_.y = (begin_index + offset) / 7;        // 从该月第一天的星期开始偏移
+//    coordinate_.x = wday;
+//}
+
+void UI::GetGridData(int year, int month)
 {
-    // 获取当前日期,并判断当前日期是这个月的第几天
-    int today = date;// sean::Function::GetNowDate();
-    //int mday = sean::Function::GetDayOfMonth();
-    // 获取当前月份的第一天,并判断它是星期几
-    int first_day_in_month = sean::Function::GetDayInMonth(1);
-    int begin_index = sean::Function::GetDayOfWeek(first_day_in_month);
-    int wday = sean::Function::GetDayOfWeek(today);
+    int first = year * 10000 + month * 100 + 1;        // 该月第一天
+    int days = sean::Function::GetMonthDays(year, month);
+    // 该月最后一天;若是当月,则最后一天是当天(因为当天以后肯定没数据)
+    int last = (now_date_ / 100 % 100 == month) ? now_date_ : year * 10000 + month * 100 + days;
 
-    int offset = today - first_day_in_month;    // 当前日期相对于本月第一天的偏移
+    // 从数据库中更新当月Grid数据前,先清空grid_
+    for (int i = 0; i < grid_.size(); ++i)
+    {
+        for (int j = 0; j < grid_[0].size(); ++j)
+        {
+            grid_[i][j] = 0;
+        }
+    }
 
-    coordinate_.y = (begin_index + offset) / 7;        // 从该月第一天的星期开始偏移
-    coordinate_.x = wday;
-
-    std::cout << "-Today: " << today << "; First: " << first_day_in_month
-        << "; wday: " << wday << "; offset: " << offset << std::endl;
-    std::cout << "(" << coordinate_.x << "," << coordinate_.y << ")" << std::endl;
-
-    ///*SYSTEMTIME system_time;
-    //GetLocalTime(&system_time);
-    //int today = system_time.wYear * 10000 + system_time.wMonth * 100 + system_time.wDay;
-    //if (today != date)
-    //{
-    //    return coordinate_;
-    //}*/
-    //// 获取当前日期是本周的第几天(周日是0,周一是1)
-    //time_t now = time(NULL); 
-    //struct tm tmp_tm, in_tm;
-    //int wday = 0;
-    //localtime_s(&in_tm, &now);
-    //in_tm.tm_year = date / 10000 - 1900;
-    //in_tm.tm_mon = (date / 100) % 100 - 1;
-    //in_tm.tm_mday = date % 100;
-    //time_t t = mktime(&in_tm);
-    //localtime_s(&tmp_tm, &t);
-    //wday = tmp_tm.tm_wday;
-    //std::cout << "wday:" << wday << std::endl;
-
-    ////POINT coordinate;
-    //coordinate_.x = wday;                    // 星期几就是网格中的第几行
-    //int column_left = 7 - wday - 1;         // 本周还剩余几天(不包含当天);如:今天周5,则还剩余1天;周日当作一周的第1天
-    ////int week_index_ = 0;                           // 本月第几个星期列;0表示第1个
-    //coordinate_.y = week_index_;
-    //if (column_left == 0)
-    //{
-    //    std::cout << "week_index:" << week_index_ << std::endl;
-    //    // 切换到下个星期时,星期列+1;1个月最多6个星期,故模上6
-    //    week_index_++;
-    //    week_index_ %= 6;
-    //}
-    //
+    for (int i = first; i <= last; ++i)
+    {
+        GridInfo grid_info;
+        grid_info.date = i;
+        if (db_.Get(grid_info))
+        {
+            grid_[grid_info.x][grid_info.y] = grid_info.tasks;
+            // 如果是当天打卡后重启,需恢复已打卡的状态
+            if (i == now_date_)
+            {
+                finished_tasks_ = grid_info.tasks;
+                // 还需要知道是哪些事项打过卡了：TODO: 用位来表示
+                // 打上勾+不能重复打卡
+                if (grid_info.tasks & 0x1000)
+                {
+                    is_health_finished_ = true;
+                }
+                if (grid_info.tasks & 0x0100)
+                {
+                    is_english_finished_ = true;
+                }
+                if (grid_info.tasks & 0x0010)
+                {
+                    is_program_finished_ = true;
+                }
+                if (grid_info.tasks & 0x0001)
+                {
+                    is_read_finished_ = true;
+                }
+            } 
+        } // db_.Get
+    } // for
 }
 
+void UI::DrawUpdate()
+{
+    // 若当天已部分打过卡,则显示
+    if (is_health_finished_)
+    {
+        outtextxy(30, 50, _T("√"));
+    }
+    if (is_english_finished_)
+    {
+        outtextxy(30, 100, _T("√"));
+    }
+    if (is_program_finished_)
+    {
+        outtextxy(30, 150, _T("√"));
+    }
+    if (is_read_finished_)
+    {
+        outtextxy(30, 200, _T("√"));
+    }
+}
 
 } // namespace 

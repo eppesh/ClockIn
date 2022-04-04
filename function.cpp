@@ -19,23 +19,6 @@ unsigned int Function::GetNowDate()
 #endif
 }
 
-unsigned int Function::GetDayInMonth(unsigned int n)
-{
-#ifdef _WIN32
-    SYSTEMTIME systemtime;
-    GetLocalTime(&systemtime);
-    // TODO: 'n' could not be a invalid number 
-    return systemtime.wYear * 10000 + systemtime.wMonth * 100 + n;
-#else
-    time_t now = time(NULL);
-    struct tm tmp_tm;
-    struct tm *local = localtime_r(&now, &tmp_tm);
-    // TODO: 'n' could not be a invalid number 
-    UINT32_T date = (1900 + local->tm_year) * 10000 + (local->tm_mon + 1) * 100 + n;
-    return date;
-#endif
-}
-
 // 获取当前日期是本周的第几天 1～7; eg: 若当天日期是Tuesday则返回2;
 unsigned char Function::GetDayOfWeek()
 {
@@ -122,6 +105,21 @@ unsigned char Function::GetDayOfMonth(unsigned int date)
     mday = local->tm_mday;
 #endif
     return mday;
+}
+
+unsigned int Function::GetMonthDays(unsigned int year, unsigned int month)
+{
+    int result = 0;
+    int days[] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+    if (month == 2)
+    {
+        result = (((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0)) ? 29 : 28;
+    }
+    else
+    {
+        result = days[month - 1];
+    }
+    return result;
 }
 
 unsigned int Function::CalculateBit(int n)

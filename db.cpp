@@ -40,5 +40,24 @@ bool DB::Get(GridInfo &grid_info)
     return true;
 }
 
+bool DB::GetFirstData(GridInfo &grid_info)
+{
+    leveldb::Slice value;
+    leveldb::Iterator *iterator = db_->NewIterator(leveldb::ReadOptions());
+    iterator->SeekToFirst();
+    if (iterator->Valid())
+    {
+        value = iterator->value();
+    }
+    if (value.size() != sizeof(GridInfo))
+    {
+        std::cout << "GetFirstData: Check failed!" << std::endl;
+        delete iterator;
+        return false;
+    }
+    memcpy_s(&grid_info, sizeof(GridInfo), value.data(), sizeof(GridInfo));
+    delete iterator;
+    return true;
+}
 
 }

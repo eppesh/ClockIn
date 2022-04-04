@@ -33,9 +33,10 @@ public:
 
 private:
     void DrawGrid();                                // 绘制网格内容
-    void GetGridCoord();                        // 根据当前日期转化为网格中的坐标
-    void GetGridCoord(int date);                // 将指定日期(20220401)转化为网格中的坐标
-
+    void GetGridCoord();                            // 根据当前日期转化为网格中的坐标
+    //void GetGridCoord(int date);                    // 将指定日期(20220401)转化为网格中的坐标
+    void GetGridData(int year, int month);          // 获取指定年月的网格数据
+    void DrawUpdate();                              // 绘制一些需要重复更新的内容(如:点击之后要绘制等情况)
 private:
     std::vector<std::vector<int>> grid_;            // 网格
 
@@ -45,6 +46,9 @@ private:
     RECT rect_btn_program_;                         // program 按钮区域
     RECT rect_btn_read_;                            // read 按钮区域
     RECT rect_btn_reset_;                           // reset 按钮区域(隐藏于网格显示区的左上角)
+    RECT rect_btn_prev_;                            // previous 按钮区域(上一个月)
+    RECT rect_btn_next_;                            // next 按钮区域(下一个月)
+    RECT rect_month_;                               // 显示月份的区域
 
     // 网格相关参数
     int grid_rows_;                                 // 网格行数与列数
@@ -70,7 +74,9 @@ private:
 
     int now_date_;                                  // 当天日期
     POINT coordinate_;                              // 网格中的当前坐标(与当天日期有关)
-    DB db_;
+    DB db_;                                         // 数据库
+    std::vector<std::string> months_;               // 月份对应关系; 1=Jan;2=Feb;
+    int display_month_;                             // 当前正在显示的年月份 202204
 };
 } // namespace
 
