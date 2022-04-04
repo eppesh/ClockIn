@@ -22,6 +22,8 @@ public:
     static unsigned char GetDayOfWeek(unsigned int date);			// 获取指定日期是本周的第几天 1～7
     static unsigned char GetDayOfMonth();							// 获取当前日期是本月的第几天 1～31
     static unsigned char GetDayOfMonth(unsigned int date);			// 获取指定日期是本月的第几天 1～31
+
+    static unsigned int CalculateBit(int n);                        // 计算 n 的16进制中有几个1(4个字节中有几个1)
 };
 } // namespace
 

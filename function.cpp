@@ -124,4 +124,19 @@ unsigned char Function::GetDayOfMonth(unsigned int date)
     return mday;
 }
 
+unsigned int Function::CalculateBit(int n)
+{
+    int result = 0;
+    unsigned int base = 0x1;
+    for (int i = 0; i < 32; ++i)
+    {
+        int tmp = base << i;       // Ã¿´Î×óÒÆ1Î»
+        if (n & tmp)
+        {
+            result++;            
+        }
+    }
+    return result;
+}
+
 }

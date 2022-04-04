@@ -17,6 +17,8 @@ UI::~UI()
 
 void UI::Init()
 {
+    //sean::Function::CalculateBit(3);  // Test
+
     rect_btn_health_ = { 280, 40, 280 + 120, 40 + 40 };
     rect_btn_english_ = { 280, 90, 280 + 120, 90 + 40 };
     rect_btn_program_ = { 280, 140, 280 + 120, 140 + 40 };
@@ -43,8 +45,25 @@ void UI::Init()
             // 如果是当天打卡后重启,需恢复已打卡的状态
             if (i == now_date_)
             {
+                finished_tasks_ = grid_info.tasks;
                 // 还需要知道是哪些事项打过卡了：TODO: 用位来表示
                 // 打上勾+不能重复打卡
+                if (grid_info.tasks & 0x1000)
+                {
+                    is_health_finished_ = true;
+                }
+                if (grid_info.tasks & 0x0100)
+                {
+                    is_english_finished_ = true;
+                }
+                if (grid_info.tasks & 0x0010)
+                {
+                    is_program_finished_ = true;
+                }
+                if (grid_info.tasks & 0x0001)
+                {
+                    is_read_finished_ = true;
+                }
             }
         }
     }
@@ -103,7 +122,7 @@ void UI::Draw()
     line(60, 190, 60 + 180, 190);
     RECT task_read = { 60, 190, 10 + 280, 190 + 40 };
     drawtext(_T("Reading"), &task_read, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-
+    
     // 打卡按钮
     setfillcolor(RGB(18, 150, 219));
     settextcolor(WHITE);
@@ -153,6 +172,24 @@ void UI::Draw()
     putimage(test_x + 3 * grid_block_size_ + 30, test_y, &img_block3_);
     putimage(test_x + 4 * grid_block_size_ + 40, test_y, &img_block4_);
     outtextxy(test_x + 5 * grid_block_size_ + 50, test_y, _T("More"));
+
+    // 若当天已部分打过卡,则显示
+    if (is_health_finished_)
+    {
+        outtextxy(30, 50, _T("√"));
+    }
+    if (is_english_finished_)
+    {
+        outtextxy(30, 100, _T("√"));
+    }
+    if (is_program_finished_)
+    {
+        outtextxy(30, 150, _T("√"));
+    }
+    if (is_read_finished_)
+    {
+        outtextxy(30, 200, _T("√"));
+    }
 }
 
 void UI::Run()
@@ -176,8 +213,9 @@ void UI::Run()
                     // 打卡响应
                     /*TCHAR health_notes[1024] = { 0 };
                     InputBox(health_notes, 1024, _T("Input the daily report about 'Health'."));*/
-                    finished_tasks_++;
-                    finished_tasks_ %= 5;
+                    /*finished_tasks_++;
+                    finished_tasks_ %= 5;*/
+                    finished_tasks_ |= 0x1000;
                     is_health_finished_ = true;
                     outtextxy(30, 50, _T("√"));
                     //date_ = _wtoi(health_notes);
@@ -194,8 +232,9 @@ void UI::Run()
                 {
                     /*TCHAR english_notes[1024] = { 0 };
                     InputBox(english_notes, 1024, _T("Input the daily report about 'English'."));*/
-                    finished_tasks_++;
-                    finished_tasks_ %= 5;
+                    /*finished_tasks_++;
+                    finished_tasks_ %= 5;*/
+                    finished_tasks_ |= 0x0100;
                     is_english_finished_ = true;
                     outtextxy(30, 100, _T("√"));
 
@@ -210,8 +249,9 @@ void UI::Run()
                 {
                     /*TCHAR program_notes[1024] = { 0 };
                     InputBox(program_notes, 1024, _T("Input the daily report about 'Programming'."));*/
-                    finished_tasks_++;
-                    finished_tasks_ %= 5;
+                    /*finished_tasks_++;
+                    finished_tasks_ %= 5;*/
+                    finished_tasks_ |= 0x0010;
                     is_program_finished_ = true;
                     outtextxy(30, 150, _T("√"));
 
@@ -226,8 +266,9 @@ void UI::Run()
                 {
                     /*TCHAR read_notes[1024] = { 0 };
                     InputBox(read_notes, 1024, _T("Input the daily report about 'Reading'."));*/
-                    finished_tasks_++;
-                    finished_tasks_ %= 5;
+                    /*finished_tasks_++;
+                    finished_tasks_ %= 5;*/
+                    finished_tasks_ |= 0x0001;
                     is_read_finished_ = true;
                     outtextxy(30, 200, _T("√"));
 
@@ -277,7 +318,7 @@ void UI::DrawGrid()
     {
         for (int j = 0; j < grid_columns_; ++j)
         {
-            switch (grid_[i][j])
+            switch (sean::Function::CalculateBit(grid_[i][j]))
             {
             case 0:
             {

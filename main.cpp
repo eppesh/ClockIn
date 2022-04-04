@@ -20,11 +20,6 @@ int main()
     std::thread listener(&UI::Run, &ui);
     listener.detach();
 
-    //while (true)
-    {
-        
-    }
-
     system("pause");
     closegraph();
     return 0;
