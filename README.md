@@ -48,7 +48,7 @@ Development related:
 
 # Screenshots
 
-![Pic](https://github.com/eppesh/PomodoroTechnique/blob/main/screenshots/Demo.gif)
+![Pic](https://github.com/eppesh/ClockIn/blob/main/screenshots/Screenshots.gif)
 
 Please refer to the pictures in the `./screenshots/` directory for other screenshots.
 
