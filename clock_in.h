@@ -34,7 +34,7 @@ public:
 private:
     void DrawGrid();                                // 绘制网格内容
     void GetGridCoord();                            // 根据当前日期转化为网格中的坐标
-    //void GetGridCoord(int date);                    // 将指定日期(20220401)转化为网格中的坐标
+    POINT GetGridCoord(int date);                   // 获取指定日期(20220401)对应的网格中的坐标
     void GetGridData(int year, int month);          // 获取指定年月的网格数据
     void DrawUpdate();                              // 绘制一些需要重复更新的内容(如:点击之后要绘制等情况)
 private:
