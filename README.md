@@ -67,7 +67,7 @@ Please refer to the pictures in the `./screenshots/` directory for other screens
   - Update`README.md`；
   - Add page flip function;
 - Updated 04/05/2022
-  - 
+  - Add date numbers;
 
 # Upcoming Changes
 
