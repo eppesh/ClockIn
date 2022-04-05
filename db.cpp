@@ -34,7 +34,7 @@ bool DB::Get(GridInfo &grid_info)
     }
     else
     {
-        std::cout << "Key: " << key << " can not find!" << std::endl;
+        //std::cout << "Key: " << key << " can not find!" << std::endl;
         return false;
     }
     return true;

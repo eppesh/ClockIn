@@ -33,35 +33,35 @@ void UI::Init()
 {
     // Test 造数据
     //for (int i = 0; i < 30; ++i)
-    {
-        GridInfo grid_info;
-        grid_info.date = 20220105;
-        GetGridCoordTT(grid_info.date, grid_info.x, grid_info.y);
-        /*grid_info.x = 1;
-        grid_info.y = 1;*/
-        grid_info.tasks = 0x1100;
-        db_.Put(grid_info);
+    //{
+    //    GridInfo grid_info;
+    //    grid_info.date = 20220105;
+    //    GetGridCoordTT(grid_info.date, grid_info.x, grid_info.y);
+    //    /*grid_info.x = 1;
+    //    grid_info.y = 1;*/
+    //    grid_info.tasks = 0x1100;
+    //    db_.Put(grid_info);
 
-        GridInfo grid_info1;
-        grid_info1.date = 20220215;
-        GetGridCoordTT(grid_info1.date, grid_info1.x, grid_info1.y);
-        /*grid_info.x = 3;
-        grid_info.y = 1;*/
-        grid_info1.tasks = 0x1110;
-        db_.Put(grid_info1);
+    //    GridInfo grid_info1;
+    //    grid_info1.date = 20220215;
+    //    GetGridCoordTT(grid_info1.date, grid_info1.x, grid_info1.y);
+    //    /*grid_info.x = 3;
+    //    grid_info.y = 1;*/
+    //    grid_info1.tasks = 0x1110;
+    //    db_.Put(grid_info1);
 
-        GridInfo grid_info2;
-        grid_info2.date = 20220322;
-        GetGridCoordTT(grid_info2.date, grid_info2.x, grid_info2.y);
-        grid_info2.tasks = 0x1111;
-        db_.Put(grid_info2);
+    //    GridInfo grid_info2;
+    //    grid_info2.date = 20220322;
+    //    GetGridCoordTT(grid_info2.date, grid_info2.x, grid_info2.y);
+    //    grid_info2.tasks = 0x1111;
+    //    db_.Put(grid_info2);
 
-        GridInfo grid_info4;
-        grid_info4.date = 20220402;
-        GetGridCoordTT(grid_info4.date, grid_info4.x, grid_info4.y);
-        grid_info4.tasks = 0x1000;
-        db_.Put(grid_info4);
-    }
+    //    GridInfo grid_info4;
+    //    grid_info4.date = 20220402;
+    //    GetGridCoordTT(grid_info4.date, grid_info4.x, grid_info4.y);
+    //    grid_info4.tasks = 0x1000;
+    //    db_.Put(grid_info4);
+    //}
 
 
     rect_btn_health_ = { 280, 40, 280 + 120, 40 + 40 };
@@ -72,19 +72,6 @@ void UI::Init()
     rect_btn_prev_ = { grid_x_, grid_y_ - grid_step_, grid_x_ + grid_block_size_, grid_y_ };
     rect_btn_next_ = { grid_x_ + 5 * grid_step_, grid_y_ - grid_step_, grid_x_ + 5 * grid_step_ + grid_block_size_, grid_y_ };
     rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
-
-    grid_.resize(grid_rows_, std::vector<int>(grid_columns_, 0));
-    months_ = { "","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
-    
-    coordinate_ = { 0,0 };
-    GetGridCoord();             // 得到当天的坐标
-
-    now_date_ = sean::Function::GetNowDate();
-    display_month_ = now_date_ / 100;
-
-    // 从数据库中读取当月的历史数据
-    GetGridData(now_date_ / 10000, now_date_ / 100 % 100);
-    
 
     // 网格中的灰色小方块:使用由浅到深的颜色的IMAGE来表示
     img_block0_.Resize(grid_block_size_, grid_block_size_);
@@ -109,6 +96,18 @@ void UI::Init()
     solidrectangle(0, 0, img_block4_.getwidth() - 1, img_block4_.getheight() - 1);
     SetWorkingImage(NULL);
 
+    grid_.resize(grid_rows_, std::vector<int>(grid_columns_, 0));
+    months_ = { "","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
+    
+    now_date_ = sean::Function::GetNowDate();
+    display_month_ = now_date_ / 100;
+
+    coordinate_ = { 0,0 };
+    GetGridCoord();             // 得到当天的坐标
+
+    // 从数据库中读取当月的历史数据
+    GetGridData(now_date_ / 10000, now_date_ / 100 % 100);
+    
 }
 
 
@@ -170,10 +169,6 @@ void UI::Draw()
     settextcolor(BLACK);
     //rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
     TCHAR current_month[4] = { 0 };
-    //int month = now_date_ / 100 % 100;
-    //_stprintf_s(current_month, 4, _T("%s"), months_[month].c_str());
-    //memcpy_s(current_month, 4, months_[month].c_str(), 4);
-    //const char *m[13] = { "","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[now_date_ / 100 % 100].c_str(), -1, current_month, 4);
     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
@@ -270,6 +265,15 @@ void UI::Run()
                     is_program_finished_ = false;
                     is_read_finished_ = false;
                     finished_tasks_ = 0;
+                    grid_[coordinate_.x][coordinate_.y] = finished_tasks_;
+                    DrawGrid();
+                    // 将数据更新到数据库
+                    GridInfo grid_info;
+                    grid_info.date = now_date_;
+                    grid_info.x = coordinate_.x;
+                    grid_info.y = coordinate_.y;
+                    grid_info.tasks = finished_tasks_;
+                    db_.Put(grid_info);
                     setfillcolor(RGB(242, 242, 241));
                     solidrectangle(28, 50, 60, 235);    // 对勾区域
                     setfillcolor(WHITE);    // 恢复成白色背景
@@ -396,19 +400,43 @@ void UI::DrawGrid()
             }
         }
     }
+
+    // 在当前日期的网格外加一个矩形框用以标识
+    if (now_date_ / 100 == display_month_)
+    {
+        COLORREF old = getlinecolor();
+        COLORREF old_text = gettextcolor();
+        setlinecolor(LIGHTGRAY);
+        settextcolor(WHITE);
+        RECT rect = { grid_step_ * coordinate_.y, grid_step_ * coordinate_.x, grid_step_ * coordinate_.y + grid_block_size_, grid_step_ * coordinate_.x + grid_block_size_ };
+        TCHAR day[3] = { 0 };
+        MultiByteToWideChar(CP_ACP, 0, (LPCSTR)(std::to_string(now_date_ / 100 % 100).c_str()), -1, day, 3);
+        drawtext(day, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        //outtextxy(grid_step_ * coordinate_.y, grid_step_ * coordinate_.x, _T("5"));
+        rectangle(grid_step_ * coordinate_.y - 3, grid_step_ * coordinate_.x - 3, grid_step_ * coordinate_.y + grid_block_size_ + 2, grid_step_ * coordinate_.x + grid_block_size_ + 2);
+        setlinecolor(old);
+        settextcolor(old_text);
+    }
+    else
+    {
+        COLORREF old = getlinecolor();
+        setlinecolor(WHITE);
+        rectangle(grid_step_ * coordinate_.y - 3, grid_step_ * coordinate_.x - 3, grid_step_ * coordinate_.y + grid_block_size_ + 2, grid_step_ * coordinate_.x + grid_block_size_ + 2);
+        setlinecolor(old);
+    }
     setorigin(0, 0);
 }
 
 void UI::GetGridCoord()
 {
     // 获取当前日期,并判断当前日期是这个月的第几天
-    int today = sean::Function::GetNowDate();
+    //int today = sean::Function::GetNowDate();
     // 获取当前月份的第一天,并判断它是星期几
-    int first_day_in_month = (today / 100) * 100 + 1;  // 该月的第1天
+    int first_day_in_month = (now_date_ / 100) * 100 + 1;  // 该月的第1天
     int begin_index = sean::Function::GetDayOfWeek(first_day_in_month);
-    int wday = sean::Function::GetDayOfWeek(today);
+    int wday = sean::Function::GetDayOfWeek(now_date_);
     
-    int offset = today - first_day_in_month;    // 当前日期相对于本月第一天的偏移
+    int offset = now_date_ - first_day_in_month;    // 当前日期相对于本月第一天的偏移
     
     coordinate_.y = (begin_index + offset) / 7;        // 从该月第一天的星期开始偏移
     coordinate_.x = wday;

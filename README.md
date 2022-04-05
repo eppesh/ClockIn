@@ -65,6 +65,9 @@ Please refer to the pictures in the `./screenshots/` directory for other screens
 - Updated 04/04/2022
   - Optimize the display of historical information
   - Update`README.md`；
+  - Add page flip function;
+- Updated 04/05/2022
+  - 
 
 # Upcoming Changes
 
