@@ -9,6 +9,8 @@
 #define FUNCTION_H
 
 #include <ctime>
+#include <string>
+#include <vector>
 #include <windows.h>
 
 namespace sean
@@ -24,6 +26,8 @@ public:
     static unsigned int GetMonthDays(unsigned int year, unsigned int month);    // 获取指定的年月中的天数
 
     static unsigned int CalculateBit(int n);                        // 计算 n 的16进制中有几个1(4个字节中有几个1)
+
+    static std::string TcharToString(TCHAR *src);                   // Convert the Tchar to std::sring
 };
 } // namespace
 

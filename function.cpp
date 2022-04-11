@@ -137,4 +137,32 @@ unsigned int Function::CalculateBit(int n)
     return result;
 }
 
+std::string Function::TcharToString(TCHAR *src)
+{
+#ifdef UNICODE    
+    // Simple C
+    // const size_t size = (wcslen(src) + 1) * sizeof(wchar_t);
+    // wcstombs(&buffer[0], src, size);
+    // std::vector<char> buffer(size);
+
+    // Windows API
+    std::vector<char> buffer;
+    int size = WideCharToMultiByte(CP_UTF8, 0, src, -1, nullptr, 0, nullptr, nullptr);
+    if (size > 0)
+    {
+        buffer.resize(size);
+        WideCharToMultiByte(CP_UTF8, 0, src, -1, static_cast<char *>(&buffer[0]), buffer.size(), nullptr, nullptr);
+    }
+    else
+    {
+        // Error handling
+    }
+    std::string result(&buffer[0]);
+#else
+    std::string result(src);
+#endif
+    return result;
+}
+
+
 }

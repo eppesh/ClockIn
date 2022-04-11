@@ -9,6 +9,7 @@
 #define CLOCK_IN_H_
 
 #include <iostream>
+#include <regex>
 #include <vector>
 
 #include <graphics.h>
@@ -49,6 +50,7 @@ private:
     RECT rect_btn_prev_;                            // previous 按钮区域(上一个月)
     RECT rect_btn_next_;                            // next 按钮区域(下一个月)
     RECT rect_month_;                               // 显示月份的区域
+    RECT rect_btn_makeup_;                          // 补打卡按钮区域
 
     // 网格相关参数
     int grid_rows_;                                 // 网格行数与列数

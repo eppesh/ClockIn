@@ -25,6 +25,7 @@ void UI::Init()
     rect_btn_prev_ = { grid_x_, grid_y_ - grid_step_, grid_x_ + grid_block_size_, grid_y_ };
     rect_btn_next_ = { grid_x_ + 5 * grid_step_, grid_y_ - grid_step_, grid_x_ + 5 * grid_step_ + grid_block_size_, grid_y_ };
     rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
+    rect_btn_makeup_ = { 30, 590, 30 + 30, 590 + 30 };
 
     // 网格中的灰色小方块:使用由浅到深的颜色的IMAGE来表示
     img_block0_.Resize(grid_block_size_, grid_block_size_);
@@ -59,7 +60,7 @@ void UI::Init()
     GetGridCoord();             // 得到当天的坐标
 
     // 从数据库中读取当月的历史数据
-    GetGridData(now_date_ / 10000, now_date_ / 100 % 100);    
+    GetGridData(now_date_ / 10000, now_date_ / 100 % 100);
 }
 
 void UI::Draw()
@@ -106,6 +107,11 @@ void UI::Draw()
     solidroundrect(rect_btn_reset_.left, rect_btn_reset_.top, rect_btn_reset_.right, rect_btn_reset_.bottom, 8, 8);
     drawtext(_T("Reset"), &rect_btn_reset_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
+    // 补打卡按钮
+    setfillcolor(RGB(235, 237, 240));
+    solidroundrect(rect_btn_makeup_.left, rect_btn_makeup_.top, rect_btn_makeup_.right, rect_btn_makeup_.bottom, 8, 8);
+    drawtext(_T("M"), &rect_btn_makeup_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
     // 统计内容显示区域
     setfillcolor(WHITE);
     setlinecolor(RGB(238, 238, 242));
@@ -117,7 +123,6 @@ void UI::Draw()
 
     // 网格左侧的星期提示
     settextcolor(BLACK);
-    //rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
     TCHAR current_month[4] = { 0 };
     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[now_date_ / 100 % 100].c_str(), -1, current_month, 4);
     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -130,10 +135,10 @@ void UI::Draw()
     drawtext(_T("Wed"), &rect_wednesday, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     RECT rect_friday = { 60, grid_y_ + 5 * grid_step_, 60 + 60, grid_y_ + 5 * grid_step_ + grid_block_size_ };
     drawtext(_T("Fri"), &rect_friday, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-        
+    
     // 颜色说明(即打卡事项越多颜色越深)
     int test_x = grid_x_ + 10;
-    int test_y = grid_y_ + 7 * grid_step_ + grid_block_size_ - 12;
+    int test_y = grid_y_ + 7 * grid_step_ + grid_block_size_ - 10 - 10;
     outtextxy(test_x - 60, test_y, _T("Less"));
     putimage(test_x, test_y, &img_block0_);
     putimage(test_x + grid_block_size_ + 10, test_y, &img_block1_);
@@ -304,6 +309,36 @@ void UI::Run()
                     TCHAR current_month[4] = { 0 };
                     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);
                     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                }
+            }
+            else if (PtInRect(&rect_btn_makeup_, mouse))
+            {
+                // 04/11/2022; added by sean; add make-up function
+                TCHAR input[32] = { 0 };
+                InputBox(input, 32, _T("Input the make-up data with the format of \"20220411;0x1101\"."));
+                std::string info = sean::Function::TcharToString(input);
+                std::regex pattern("[0-9]{8};0[xX][0-9a-fA-F]+");
+                if (std::regex_match(info, pattern))
+                {
+                    int date = atoi(info.substr(0, 8).c_str());
+                    if (date == now_date_)
+                    {
+                        break;
+                    }
+                    int tasks = strtol(info.substr(9, 6).c_str(), nullptr, 16);
+                    POINT point = GetGridCoord(date);
+                    GridInfo grid;
+                    grid.date = date;
+                    grid.x = point.x;
+                    grid.y = point.y;
+                    grid.tasks = tasks;
+                    db_.Put(grid);
+                    if (display_month_ == (date / 100))
+                    {
+                        // 补打卡的月份是当前显示月,则显示补打卡的内容
+                        grid_[grid.x][grid.y] = grid.tasks;
+                    }
+                    DrawGrid();
                 }
             }
             break;
