@@ -45,6 +45,10 @@ Development related:
 - Display historical data：
 
   After starting the tool, it will display the historical information, if there is any.
+  
+- Make-up:
+
+  If you completed several tasks but forgot to lock in, you can make up for it by clicking the `M` button (which means `make up`). By typing into the date and tasks with the format of `20220411;0x1101`, you can clock-in the specific date again. Note that `0x1101` means that you have finished the first, second, and fourth tasks. 
 
 # Screenshots
 
@@ -68,6 +72,8 @@ Please refer to the pictures in the `./screenshots/` directory for other screens
   - Add page flip function;
 - Updated 04/05/2022
   - Add date numbers;
+- Updated 04/11/2022
+  - Add make-up function;
 
 # Upcoming Changes
 
