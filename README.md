@@ -6,7 +6,7 @@
 
 It is mainly developed in C++. It uses the [EeayX](https://easyx.cn/) to draw the UI and store and access the historical data with the help of [LevelDB](https://github.com/google/leveldb). 
 
-The original intention of this tool is mainly for self-use and, by the way, to learn how to use LevelDB.
+The original intention of this tool is mainly for self-use and, by the way, to learn how to use **LevelDB**.
 
 Authors: Sean (eppesh@163.com)
 
@@ -14,6 +14,7 @@ Authors: Sean (eppesh@163.com)
 
 - Clocking in;
 - Showing the information of clocking in (including the current date and the historical data);
+
 
 # Documentation
 
@@ -30,6 +31,7 @@ Development related:
 - `C++`；
 - `Visual Studio 2019`; 
 - `EasyX 20220116`; 
+- LevelDB 
 
 # Usage
 
@@ -80,6 +82,7 @@ Please refer to the pictures in the `./screenshots/` directory for other screens
 Some of the goals for 2022 are:
 
 - Code optimizing; 
+- Add a new function for showing the past task info and modifying them by clicking on the date.
 
 # Postscripts
 
