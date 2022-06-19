@@ -359,7 +359,7 @@ void UI::DrawGrid()
     // 当前显示月份的最后一天
     int last_day = display_month_ * 100 + sean::Function::GetMonthDays(display_month_ / 100, display_month_ % 100);
     int num = display_month_ * 100;
-    bool is_draw_num = false;   // 是否绘制数字
+    bool is_draw_num = false;   // 是否绘制数字; 避免在非法区域(如本月1日从第2个小灰格开始,则第1个小灰格为非法区域)绘制；
     // 按时从上到下,从左到右的顺序遍历并绘制        
     for (int i = 0; i < grid_columns_; ++i)
     {
@@ -370,8 +370,8 @@ void UI::DrawGrid()
             {
             case 0:
             {
-                putimage(grid_step_ * i, grid_step_ * j, &img_block0_);
-                settextcolor(RGB(203, 201, 204));
+                putimage(grid_step_ * i, grid_step_ * j, &img_block0_);         // 绘制灰色方块
+                settextcolor(RGB(203, 201, 204));       
                 break;
             }
             case 1:
