@@ -79,6 +79,8 @@ private:
     DB db_;                                         // 数据库
     std::vector<std::string> months_;               // 月份对应关系; 1=Jan;2=Feb;
     int display_month_;                             // 当前正在显示的年月份 202204
+
+    int placeholder_;                               // 占位符,用来代替区域间的一些空白间隙
 };
 } // namespace
 

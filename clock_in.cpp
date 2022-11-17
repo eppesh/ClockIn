@@ -3,9 +3,9 @@
 namespace clock_in
 {
 UI::UI() :grid_rows_(7), grid_columns_(6), grid_block_size_(30), grid_step_(30 + 10),
-grid_x_(20 + 150), grid_y_(260 + 40), week_index_(0), finished_tasks_(0),
+grid_x_(20 + 150), grid_y_(260 + 10), week_index_(0), finished_tasks_(0),
 is_health_finished_(false), is_english_finished_(false), is_program_finished_(false),
-is_read_finished_(false)
+is_read_finished_(false), now_date_(0), display_month_(0), placeholder_(20)
 {
     Init();
 }
@@ -17,15 +17,18 @@ UI::~UI()
 
 void UI::Init()
 {
-    rect_btn_health_ = { 280, 40, 280 + 120, 40 + 40 };
+    /*rect_btn_health_ = { 280, 40, 280 + 120, 40 + 40 };
     rect_btn_english_ = { 280, 90, 280 + 120, 90 + 40 };
     rect_btn_program_ = { 280, 140, 280 + 120, 140 + 40 };
-    rect_btn_read_ = { 280, 190, 280 + 120, 190 + 40 };
-    rect_btn_reset_ = { 30, 270, 30 + 80, 310 };
+    rect_btn_read_ = { 280, 190, 280 + 120, 190 + 40 };*/
+    
     rect_btn_prev_ = { grid_x_, grid_y_ - grid_step_, grid_x_ + grid_block_size_, grid_y_ };
     rect_btn_next_ = { grid_x_ + 5 * grid_step_, grid_y_ - grid_step_, grid_x_ + 5 * grid_step_ + grid_block_size_, grid_y_ };
     rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
-    rect_btn_makeup_ = { 30, 590, 30 + 30, 590 + 30 };
+
+    //rect_btn_reset_ = { 30, 270, 30 + 80, 310 };    
+    //rect_btn_makeup_ = { 30, 590, 30 + 30, 590 + 30 };
+    
 
     // 网格中的灰色小方块:使用由浅到深的颜色的IMAGE来表示
     img_block0_.Resize(grid_block_size_, grid_block_size_);
@@ -65,32 +68,50 @@ void UI::Init()
 
 void UI::Draw()
 {
-    initgraph(460, 650/*, EW_SHOWCONSOLE*/);
+    int win_width = 460;        // 窗体宽度
+    int win_height = 690;
+    
+    initgraph(win_width, win_height/*, EW_SHOWCONSOLE*/);
     setbkcolor(WHITE);
     setbkmode(TRANSPARENT);
     cleardevice();
 
-    // 打卡区域
+    // 1. 打卡区域(包括任务名称和打卡按钮Clock In)
     setfillcolor(RGB(242, 242, 241));
-    solidroundrect(20, 30, 440, 240, 10, 10);
-    // 任务名称
+    //solidroundrect(20, 30, 440, 240, 10, 10);
+    solidroundrect(placeholder_, placeholder_ / 2, win_width - placeholder_, placeholder_ / 2 + 210, 10, 10);
+
+    setorigin(placeholder_, placeholder_ / 2);
+
+    // 1.1 任务名称
     settextstyle(32, 0, _T("Times New Roman"));
     settextcolor(0x9eaebb);
-    RECT task_health = { 60, 40, 60 + 200, 40 + 40 };
+    //RECT task_health = { 60, 40, 60 + 200, 40 + 40 };
+    RECT task_health = { 40, 10, 40 + 200, 10 + 40 };
     drawtext(_T("Health"), &task_health, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     setlinestyle(PS_DASH);
     setlinecolor(LIGHTGRAY);
-    line(60, 90, 60 + 180, 90);
-    RECT task_en = { 60, 90, 60 + 200, 90 + 40 };
+    //line(60, 90, 60 + 180, 90);
+    line(40, 10 + 50, 40 + 180, 10 + 50);
+    //RECT task_en = { 60, 90, 60 + 200, 90 + 40 };
+    RECT task_en = { 40, 60, 40 + 200, 60 + 40 };
     drawtext(_T("English"), &task_en, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    line(60, 140, 60 + 180, 140);
-    RECT task_program = { 60, 140, 60 + 200, 140 + 40 };
+    //line(60, 140, 60 + 180, 140);
+    line(40, 10 + 100, 40 + 180, 110);
+    //RECT task_program = { 60, 140, 60 + 200, 140 + 40 };
+    RECT task_program = { 40, 110, 40 + 200, 110 + 40 };
     drawtext(_T("Programming"), &task_program, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    line(60, 190, 60 + 180, 190);
-    RECT task_read = { 60, 190, 10 + 280, 190 + 40 };
+    //line(60, 190, 60 + 180, 190);
+    line(40, 10 + 150, 40 + 180, 160);
+    //RECT task_read = { 60, 190, 10 + 280, 190 + 40 };
+    RECT task_read = { 40, 160, 40 + 200, 160 + 40 };
     drawtext(_T("Reading"), &task_read, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     
-    // 打卡按钮
+    // 1.2 打卡按钮
+    rect_btn_health_ = { 280, 10, 280 + 120, 10 + 40 };
+    rect_btn_english_ = { 280, 60, 280 + 120, 60 + 40 };
+    rect_btn_program_ = { 280, 110, 280 + 120, 110 + 40 };
+    rect_btn_read_ = { 280, 160, 280 + 120, 160 + 40 };
     setfillcolor(RGB(18, 150, 219));
     settextcolor(WHITE);
     solidroundrect(rect_btn_health_.left, rect_btn_health_.top, rect_btn_health_.right, rect_btn_health_.bottom, 8, 8);
@@ -102,26 +123,19 @@ void UI::Draw()
     solidroundrect(rect_btn_read_.left, rect_btn_read_.top, rect_btn_read_.right, rect_btn_read_.bottom, 8, 8);
     drawtext(_T("Clock In"), &rect_btn_read_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     
-    // 重置按钮
-    setfillcolor(RGB(235, 237, 240));
-    solidroundrect(rect_btn_reset_.left, rect_btn_reset_.top, rect_btn_reset_.right, rect_btn_reset_.bottom, 8, 8);
-    drawtext(_T("Reset"), &rect_btn_reset_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-    // 补打卡按钮
-    setfillcolor(RGB(235, 237, 240));
-    solidroundrect(rect_btn_makeup_.left, rect_btn_makeup_.top, rect_btn_makeup_.right, rect_btn_makeup_.bottom, 8, 8);
-    drawtext(_T("M"), &rect_btn_makeup_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-    // 统计内容显示区域
+    setorigin(0, 0);
+    //////////////////////////////////////////////////////////////////////////
+ 
+    // 2. 统计内容展示区域(由上到下自左到右依次包括：月份、星期、网格内容和颜色说明等)
     setfillcolor(WHITE);
     setlinecolor(RGB(238, 238, 242));
-    roundrect(20, 260, 440, 630, 10, 10);
+    roundrect(placeholder_, 260-30, win_width - placeholder_, 630-30, 10, 10);
     
 
     // 绘制网格    
     DrawGrid();
 
-    // 网格左侧的星期提示
+    // 绘制网格左侧的星期和网格上面的月份提示
     settextcolor(BLACK);
     TCHAR current_month[4] = { 0 };
     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[now_date_ / 100 % 100].c_str(), -1, current_month, 4);
@@ -136,7 +150,7 @@ void UI::Draw()
     RECT rect_friday = { 60, grid_y_ + 5 * grid_step_, 60 + 60, grid_y_ + 5 * grid_step_ + grid_block_size_ };
     drawtext(_T("Fri"), &rect_friday, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     
-    // 颜色说明(即打卡事项越多颜色越深)
+    // 绘制颜色说明(即打卡事项越多颜色越深)
     int test_x = grid_x_ + 10;
     int test_y = grid_y_ + 7 * grid_step_ + grid_block_size_ - 10 - 10;
     outtextxy(test_x - 60, test_y, _T("Less"));
@@ -146,6 +160,31 @@ void UI::Draw()
     putimage(test_x + 3 * grid_block_size_ + 30, test_y, &img_block3_);
     putimage(test_x + 4 * grid_block_size_ + 40, test_y, &img_block4_);
     outtextxy(test_x + 5 * grid_block_size_ + 50, test_y, _T("More"));
+
+    //////////////////////////////////////////////////////////////////////////
+
+    // 3. 其他功能区域(包括重置、补打卡等功能按钮）    
+    setfillcolor(WHITE);
+    setlinecolor(RGB(238, 238, 242));
+    roundrect(placeholder_, 610, win_width - placeholder_, 610 + 30, 10, 10);
+
+    rect_btn_reset_ = { 30, 610, 30 + 100, 610 + 30 };
+    rect_btn_makeup_ = { 30 + 80 + 30, 610, 140 + 100, 610 + 30 };
+
+    // 重置按钮
+    setfillcolor(RGB(235, 237, 240));
+    solidroundrect(rect_btn_reset_.left, rect_btn_reset_.top, rect_btn_reset_.right, rect_btn_reset_.bottom, 8, 8);
+    drawtext(_T("Reset"), &rect_btn_reset_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    // 补打卡按钮
+    setfillcolor(RGB(235, 237, 240));
+    solidroundrect(rect_btn_makeup_.left, rect_btn_makeup_.top, rect_btn_makeup_.right, rect_btn_makeup_.bottom, 8, 8);
+    drawtext(_T("MakeUp"), &rect_btn_makeup_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    // 4. 提示信息区域(相当于状态栏,可展示一些提示信息)    
+    setfillcolor(WHITE);
+    setlinecolor(RGB(238, 238, 242));
+    roundrect(placeholder_, 650, win_width - placeholder_, 650 + 30, 10, 10);
 
     DrawUpdate();
 }
@@ -175,7 +214,7 @@ void UI::Run()
                     is_health_finished_ = true;
                     COLORREF old = gettextcolor();
                     settextcolor(0x9eaebb);
-                    outtextxy(30, 50, _T("√"));
+                    outtextxy(30, placeholder_ + 10, _T("√"));
                     settextcolor(old);
                 }
                 
@@ -190,7 +229,7 @@ void UI::Run()
                     is_english_finished_ = true;
                     COLORREF old = gettextcolor();
                     settextcolor(0x9eaebb);
-                    outtextxy(30, 100, _T("√"));
+                    outtextxy(30, placeholder_ + 60, _T("√"));
                     settextcolor(old);
                 }
             }
@@ -204,7 +243,7 @@ void UI::Run()
                     is_program_finished_ = true;
                     COLORREF old = gettextcolor();
                     settextcolor(0x9eaebb);
-                    outtextxy(30, 150, _T("√"));
+                    outtextxy(30, placeholder_ + 110, _T("√"));
                     settextcolor(old);
                 }
             }
@@ -218,7 +257,7 @@ void UI::Run()
                     is_read_finished_ = true;
                     COLORREF old = gettextcolor();
                     settextcolor(0x9eaebb);
-                    outtextxy(30, 200, _T("√"));
+                    outtextxy(30, placeholder_ + 160, _T("√"));
                     settextcolor(old);
                 }
             }
@@ -243,7 +282,7 @@ void UI::Run()
                     db_.Put(grid_info);
                     COLORREF old = getfillcolor();
                     setfillcolor(RGB(242, 242, 241));
-                    solidrectangle(28, 50, 60, 235);    // 对勾区域
+                    solidrectangle(28, 30, 60, 205);    // 对勾区域
                     setfillcolor(old);    // 恢复成白色背景
                 }
             }
@@ -284,6 +323,9 @@ void UI::Run()
                     // 读取上一月的数据
                     GetGridData(display_month_ / 100, display_month_ % 100);
                     DrawGrid();
+                    // Updated in 11/17/2022: 修复切换上下月时"月份"背景及字体颜色显示异常的问题
+                    setfillcolor(WHITE);
+                    settextcolor(BLACK);
                     solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
                     TCHAR current_month[4] = { 0 };                    
                     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);
@@ -305,9 +347,12 @@ void UI::Run()
                     // 读取下一月的数据
                     GetGridData(display_month_ / 100, display_month_ % 100);
                     DrawGrid();
+                    // Updated in 11/17/2022: 修复切换上下月时"月份"背景及字体颜色显示异常的问题
+                    setfillcolor(WHITE);
+                    settextcolor(BLACK);
                     solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
                     TCHAR current_month[4] = { 0 };
-                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);
+                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);                    
                     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 }
             }
@@ -532,19 +577,19 @@ void UI::DrawUpdate()
     // 若当天已部分打过卡,则显示
     if (is_health_finished_)
     {
-        outtextxy(30, 50, _T("√"));
+        outtextxy(placeholder_ + 10, placeholder_ + 10, _T("√"));
     }
     if (is_english_finished_)
     {
-        outtextxy(30, 100, _T("√"));
+        outtextxy(placeholder_ + 10, placeholder_ + 60, _T("√"));
     }
     if (is_program_finished_)
     {
-        outtextxy(30, 150, _T("√"));
+        outtextxy(placeholder_ + 10, placeholder_ + 110, _T("√"));
     }
     if (is_read_finished_)
     {
-        outtextxy(30, 200, _T("√"));
+        outtextxy(placeholder_ + 10, placeholder_ + 160, _T("√"));
     }
     settextcolor(old);
 }
