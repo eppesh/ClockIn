@@ -76,13 +76,20 @@ Please refer to the pictures in the `./screenshots/` directory for other screens
   - Add date numbers;
 - Updated 04/11/2022
   - Add make-up function;
+- Updated 11/18/2022
+  - Change the locations of the "Reset" and "MakeUp" buttonsto the bottom of the tool.
+  - Add checking Clock-In info function: move the mouse on the specified grid block and right click; relevant info will show at the bottom of the tool.
+  - Add modifying Clock-In info function: 
+    - way #1: by clicking the "MakeUp" button and inputting the new info with the form of "20221118;0x1101".
+    - way #2: by double clicking on a grid and inputting the new info with the form of "0x1101".
+
 
 # Upcoming Changes
 
 Some of the goals for 2022 are:
 
 - Code optimizing; 
-- Add a new function for showing the past task info and modifying them by clicking on the date.
+- Add a new function for showing the past task info and modifying them by clicking on the date. [Done at 11/18/2022]
 
 # Postscripts
 
