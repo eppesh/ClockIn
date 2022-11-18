@@ -1,5 +1,8 @@
 #include "clock_in.h"
 
+#include <sstream>          // std::ostringstream
+#include <iomanip>          // std::setfill, std::setw
+
 namespace clock_in
 {
 UI::UI() :grid_rows_(7), grid_columns_(6), grid_block_size_(30), grid_step_(30 + 10),
@@ -54,6 +57,7 @@ void UI::Init()
     SetWorkingImage(NULL);
 
     grid_.resize(grid_rows_, std::vector<int>(grid_columns_, 0));
+    grid_block_rect_.resize(grid_rows_, std::vector<RECT>(grid_columns_, { 0,0,0,0 }));
     months_ = { "","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
     
     now_date_ = sean::Function::GetNowDate();
@@ -330,6 +334,9 @@ void UI::Run()
                     TCHAR current_month[4] = { 0 };                    
                     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);
                     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                    // 先清空状态展示区域信息
+                    RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
+                    solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
                 }
             }
             else if (PtInRect(&rect_btn_next_, mouse))
@@ -354,6 +361,9 @@ void UI::Run()
                     TCHAR current_month[4] = { 0 };
                     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);                    
                     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                    // 先清空状态展示区域信息
+                    RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
+                    solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
                 }
             }
             else if (PtInRect(&rect_btn_makeup_, mouse))
@@ -386,6 +396,54 @@ void UI::Run()
                     DrawGrid();
                 }
             }
+            break;
+        }
+        case WM_RBUTTONUP:  // 右键单击up
+        {
+            // 计算鼠标所在区域对应网格中的坐标
+            int col_in_grid = -1;
+            int row_in_grid = -1;
+            bool is_stop = false;
+            for (int i = 0; i < grid_block_rect_[0].size(); ++i)
+            {
+                for (int j = 0; j < grid_block_rect_.size(); ++j)
+                {
+                    if (PtInRect(&grid_block_rect_[j][i], mouse))
+                    {
+                        col_in_grid = i;
+                        row_in_grid = j;
+                        is_stop = true;
+                        break;
+                    }
+                }
+                if (is_stop)
+                {
+                    break;
+                }
+            }
+            // 先清空状态展示区域信息,再展示新信息
+            RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
+            solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
+            if (is_stop)
+            {
+                settextcolor(BLACK);
+                // 获取网格点对应的日期
+
+                // 获取网格点对应日期上的任务信息
+                std::ostringstream oss;
+                oss << "0x" << std::setfill('0') << std::setw(4) << std::hex << grid_[row_in_grid][col_in_grid];
+                std::string tasks = oss.str();
+
+                std::string str = "(" + std::to_string(row_in_grid) + "," + std::to_string(col_in_grid) +
+                    ") " + tasks;
+                TCHAR content[64] = { 0 };
+                MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, content, 64);
+                drawtext(content, &rect_info, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+            }
+            break;
+        }
+        case WM_LBUTTONDBLCLK:  // 左键双击
+        {
             break;
         }
         default:
@@ -456,13 +514,19 @@ void UI::DrawGrid()
             if (is_draw_num && num < last_day)
             {
                 num++;
-                COLORREF old_text = gettextcolor();                
+                COLORREF old_text = gettextcolor();
                 //settextcolor(WHITE);
                 settextstyle(20, 0, _T("Times New Roman"));
                 RECT rect = { grid_step_ * i, grid_step_ * j, grid_step_ * i + grid_block_size_, grid_step_ * j + grid_block_size_ };
                 TCHAR day[3] = { 0 };
                 MultiByteToWideChar(CP_ACP, 0, (LPCSTR)(std::to_string(num % 100).c_str()), -1, day, 3);
-                drawtext(day, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);                
+                drawtext(day, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                // added in 11/18/2022 绘制网格的同时获取各网格块的区域
+                /*RECT tmp = { grid_x_ + grid_step_ * i, grid_y_ + grid_step_ * j,
+                    grid_x_ + grid_step_ * i + grid_block_size_, grid_y_ + grid_step_ * j + grid_block_size_ };*/
+                RECT tmp = { grid_x_ + rect.left, grid_y_ + rect.top, grid_x_ + rect.right,grid_y_ + rect.bottom };
+                grid_block_rect_[j][i] = tmp;
             }
         }
     }
@@ -533,6 +597,7 @@ void UI::GetGridData(int year, int month)
         for (int j = 0; j < grid_[0].size(); ++j)
         {
             grid_[i][j] = 0;
+            grid_block_rect_[i][j] = { 0,0,0,0 };
         }
     }
 
