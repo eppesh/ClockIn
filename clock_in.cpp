@@ -19,19 +19,10 @@ UI::~UI()
 }
 
 void UI::Init()
-{
-    /*rect_btn_health_ = { 280, 40, 280 + 120, 40 + 40 };
-    rect_btn_english_ = { 280, 90, 280 + 120, 90 + 40 };
-    rect_btn_program_ = { 280, 140, 280 + 120, 140 + 40 };
-    rect_btn_read_ = { 280, 190, 280 + 120, 190 + 40 };*/
-    
+{    
     rect_btn_prev_ = { grid_x_, grid_y_ - grid_step_, grid_x_ + grid_block_size_, grid_y_ };
     rect_btn_next_ = { grid_x_ + 5 * grid_step_, grid_y_ - grid_step_, grid_x_ + 5 * grid_step_ + grid_block_size_, grid_y_ };
     rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
-
-    //rect_btn_reset_ = { 30, 270, 30 + 80, 310 };    
-    //rect_btn_makeup_ = { 30, 590, 30 + 30, 590 + 30 };
-    
 
     // 网格中的灰色小方块:使用由浅到深的颜色的IMAGE来表示
     img_block0_.Resize(grid_block_size_, grid_block_size_);
@@ -56,6 +47,8 @@ void UI::Init()
     solidrectangle(0, 0, img_block4_.getwidth() - 1, img_block4_.getheight() - 1);
     SetWorkingImage(NULL);
 
+    int hash_size = grid_rows_ * grid_columns_ + 1;
+    coord_date_hash_.resize(hash_size, 0);
     grid_.resize(grid_rows_, std::vector<int>(grid_columns_, 0));
     grid_block_rect_.resize(grid_rows_, std::vector<RECT>(grid_columns_, { 0,0,0,0 }));
     months_ = { "","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
@@ -75,14 +68,13 @@ void UI::Draw()
     int win_width = 460;        // 窗体宽度
     int win_height = 690;
     
-    initgraph(win_width, win_height/*, EW_SHOWCONSOLE*/);
+    initgraph(win_width, win_height , EW_DBLCLKS/* | EW_SHOWCONSOLE*/);
     setbkcolor(WHITE);
     setbkmode(TRANSPARENT);
     cleardevice();
 
     // 1. 打卡区域(包括任务名称和打卡按钮Clock In)
     setfillcolor(RGB(242, 242, 241));
-    //solidroundrect(20, 30, 440, 240, 10, 10);
     solidroundrect(placeholder_, placeholder_ / 2, win_width - placeholder_, placeholder_ / 2 + 210, 10, 10);
 
     setorigin(placeholder_, placeholder_ / 2);
@@ -90,24 +82,17 @@ void UI::Draw()
     // 1.1 任务名称
     settextstyle(32, 0, _T("Times New Roman"));
     settextcolor(0x9eaebb);
-    //RECT task_health = { 60, 40, 60 + 200, 40 + 40 };
     RECT task_health = { 40, 10, 40 + 200, 10 + 40 };
     drawtext(_T("Health"), &task_health, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     setlinestyle(PS_DASH);
     setlinecolor(LIGHTGRAY);
-    //line(60, 90, 60 + 180, 90);
     line(40, 10 + 50, 40 + 180, 10 + 50);
-    //RECT task_en = { 60, 90, 60 + 200, 90 + 40 };
     RECT task_en = { 40, 60, 40 + 200, 60 + 40 };
     drawtext(_T("English"), &task_en, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    //line(60, 140, 60 + 180, 140);
     line(40, 10 + 100, 40 + 180, 110);
-    //RECT task_program = { 60, 140, 60 + 200, 140 + 40 };
     RECT task_program = { 40, 110, 40 + 200, 110 + 40 };
     drawtext(_T("Programming"), &task_program, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    //line(60, 190, 60 + 180, 190);
     line(40, 10 + 150, 40 + 180, 160);
-    //RECT task_read = { 60, 190, 10 + 280, 190 + 40 };
     RECT task_read = { 40, 160, 40 + 200, 160 + 40 };
     drawtext(_T("Reading"), &task_read, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     
@@ -398,7 +383,8 @@ void UI::Run()
             }
             break;
         }
-        case WM_RBUTTONUP:  // 右键单击up
+        case WM_RBUTTONUP:  // 右键单击在底部状态区域显示当天打卡信息        
+        case WM_LBUTTONDBLCLK:  // 左键双击网格,可修改当前网格对应日期的打卡信息
         {
             // 计算鼠标所在区域对应网格中的坐标
             int col_in_grid = -1;
@@ -421,29 +407,63 @@ void UI::Run()
                     break;
                 }
             }
-            // 先清空状态展示区域信息,再展示新信息
+
+            // 先清空状态展示区域信息
             RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
             solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
+
             if (is_stop)
             {
                 settextcolor(BLACK);
                 // 获取网格点对应的日期
-
+                int index = row_in_grid * grid_columns_ + col_in_grid;
+                int date = coord_date_hash_[index];
+                if (msg.message == WM_LBUTTONDBLCLK && date >= now_date_)
+                {
+                    break;
+                }
                 // 获取网格点对应日期上的任务信息
                 std::ostringstream oss;
                 oss << "0x" << std::setfill('0') << std::setw(4) << std::hex << grid_[row_in_grid][col_in_grid];
                 std::string tasks = oss.str();
+                std::string str = " " + std::to_string(date) + " - " + tasks;
+                // 展示的信息
+                TCHAR content[32] = { 0 };  
+                
+                if (msg.message == WM_RBUTTONUP)
+                {
+                    // 右键单击时在底部状态区域显示对应日期及打卡信息
+                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, content, 32);
+                    drawtext(content, &rect_info, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                    break;
+                }
+                
+                // 下面是对左键双键的处理:可修改点击的网格对应日期的打卡信息
+                std::string tmp = "修改" + str + " 的打卡信息";
+                MultiByteToWideChar(CP_ACP, 0, (LPCSTR)tmp.c_str(), -1, content, 32);
 
-                std::string str = "(" + std::to_string(row_in_grid) + "," + std::to_string(col_in_grid) +
-                    ") " + tasks;
-                TCHAR content[64] = { 0 };
-                MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, content, 64);
-                drawtext(content, &rect_info, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                TCHAR input[32] = { 0 };
+                InputBox(input, 32, _T("请按 \"0x1101\" 的格式输入待修改的打卡信息."), content);
+                std::string info = sean::Function::TcharToString(input);
+                std::regex pattern("0[xX][0-9a-fA-F]+");
+                if (std::regex_match(info, pattern))
+                {
+                    int tasks = strtol(info.substr(0, 6).c_str(), nullptr, 16);
+                    POINT point = GetGridCoord(date);
+                    GridInfo grid;
+                    grid.date = date;
+                    grid.x = point.x;
+                    grid.y = point.y;
+                    grid.tasks = tasks;
+                    db_.Put(grid);
+                    if (display_month_ == (date / 100))
+                    {
+                        // 补打卡的月份是当前显示月,则显示补打卡的内容
+                        grid_[grid.x][grid.y] = grid.tasks;
+                    }
+                    DrawGrid();
+                }
             }
-            break;
-        }
-        case WM_LBUTTONDBLCLK:  // 左键双击
-        {
             break;
         }
         default:
@@ -458,6 +478,10 @@ void UI::DrawGrid()
     setorigin(grid_x_, grid_y_);
     LOGFONT old_style;
     gettextstyle(&old_style);
+
+    // 每次绘制前将坐标与日期的哈希表清空
+    memset(&coord_date_hash_[0], 0, coord_date_hash_.size() * sizeof(int));
+
     POINT frist_day_coord = GetGridCoord(display_month_ * 100 + 1);   // 获取当前显示月份的第1天的坐标
     // 当前显示月份的最后一天
     int last_day = display_month_ * 100 + sean::Function::GetMonthDays(display_month_ / 100, display_month_ % 100);
@@ -523,10 +547,9 @@ void UI::DrawGrid()
                 drawtext(day, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
                 // added in 11/18/2022 绘制网格的同时获取各网格块的区域
-                /*RECT tmp = { grid_x_ + grid_step_ * i, grid_y_ + grid_step_ * j,
-                    grid_x_ + grid_step_ * i + grid_block_size_, grid_y_ + grid_step_ * j + grid_block_size_ };*/
                 RECT tmp = { grid_x_ + rect.left, grid_y_ + rect.top, grid_x_ + rect.right,grid_y_ + rect.bottom };
                 grid_block_rect_[j][i] = tmp;
+                coord_date_hash_[j * grid_columns_ + i] = num;
             }
         }
     }

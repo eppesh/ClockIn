@@ -21,7 +21,6 @@
 
 namespace clock_in
 {
-
 class UI
 {
 public:
@@ -82,6 +81,7 @@ private:
 
     int placeholder_;                               // 占位符,用来代替区域间的一些空白间隙
     std::vector<std::vector<RECT>> grid_block_rect_;// 网格中每个网格点的真实区域,用于判断鼠标是否为于某个网格点中
+    std::vector<int> coord_date_hash_;              // 用数组表示网格坐标与对应日期的哈希对,方便根据坐标查找对应日期
 };
 } // namespace
 
