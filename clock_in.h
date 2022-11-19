@@ -33,6 +33,7 @@ public:
 
 private:
     void DrawGrid();                                // 绘制网格内容
+    void ShowMonthGrid(int month);                  // 展示指定月份month的打卡内容
     void GetGridCoord();                            // 根据当前日期转化为网格中的坐标
     POINT GetGridCoord(int date);                   // 获取指定日期(20220401)对应的网格中的坐标
     void GetGridData(int year, int month);          // 获取指定年月的网格数据
@@ -41,6 +42,10 @@ private:
     std::vector<std::vector<int>> grid_;            // 网格
 
     // 矩形区域
+    RECT task_health_;                              // 任务1-health 任务名称区域
+    RECT task_english_;                             // 任务2-English 任务名称区域
+    RECT task_program_;                             // 任务3-program 任务名称区域
+    RECT task_read_;                                // 任务4-read 任务名称区域
     RECT rect_btn_health_;                          // health 按钮区域
     RECT rect_btn_english_;                         // English 按钮区域
     RECT rect_btn_program_;                         // program 按钮区域
@@ -50,6 +55,10 @@ private:
     RECT rect_btn_next_;                            // next 按钮区域(下一个月)
     RECT rect_month_;                               // 显示月份的区域
     RECT rect_btn_makeup_;                          // 补打卡按钮区域
+
+    RECT clockin_area_;                             // 打卡区域;包括任务名称和打卡按钮等内容
+    RECT task_name_area_;                           // 打卡任务名称区域;区别于打卡按钮区域
+    RECT display_area_;                             // 打卡统计内容展示区域;包括日期,星期,网格内容和颜色说明等内容
 
     // 网格相关参数
     int grid_rows_;                                 // 网格行数与列数

@@ -20,9 +20,11 @@ UI::~UI()
 
 void UI::Init()
 {    
+    
     rect_btn_prev_ = { grid_x_, grid_y_ - grid_step_, grid_x_ + grid_block_size_, grid_y_ };
     rect_btn_next_ = { grid_x_ + 5 * grid_step_, grid_y_ - grid_step_, grid_x_ + 5 * grid_step_ + grid_block_size_, grid_y_ };
-    rect_month_ = { grid_x_ + 2 * grid_step_, grid_y_ - grid_step_, grid_x_ + 3 * grid_step_ + grid_block_size_, grid_y_ };
+    rect_month_ = { grid_x_ + grid_step_, grid_y_ - grid_step_, grid_x_ + 4 * grid_step_ + grid_block_size_, grid_y_ };
+    
 
     // 网格中的灰色小方块:使用由浅到深的颜色的IMAGE来表示
     img_block0_.Resize(grid_block_size_, grid_block_size_);
@@ -75,26 +77,28 @@ void UI::Draw()
 
     // 1. 打卡区域(包括任务名称和打卡按钮Clock In)
     setfillcolor(RGB(242, 242, 241));
-    solidroundrect(placeholder_, placeholder_ / 2, win_width - placeholder_, placeholder_ / 2 + 210, 10, 10);
+    clockin_area_ = { placeholder_, placeholder_ / 2, win_width - placeholder_, placeholder_ / 2 + 210 };
+    task_name_area_ = { 40, 10, 240, 220 };
+    solidroundrect(clockin_area_.left, clockin_area_.top, clockin_area_.right, clockin_area_.bottom, 10, 10);
 
     setorigin(placeholder_, placeholder_ / 2);
 
-    // 1.1 任务名称
+    // 1.1 任务名称    
     settextstyle(32, 0, _T("Times New Roman"));
     settextcolor(0x9eaebb);
-    RECT task_health = { 40, 10, 40 + 200, 10 + 40 };
-    drawtext(_T("Health"), &task_health, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    task_health_ = { 40, 10, 40 + 200, 10 + 40 };
+    drawtext(_T("Health"), &task_health_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     setlinestyle(PS_DASH);
     setlinecolor(LIGHTGRAY);
-    line(40, 10 + 50, 40 + 180, 10 + 50);
-    RECT task_en = { 40, 60, 40 + 200, 60 + 40 };
-    drawtext(_T("English"), &task_en, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    line(40, 10 + 100, 40 + 180, 110);
-    RECT task_program = { 40, 110, 40 + 200, 110 + 40 };
-    drawtext(_T("Programming"), &task_program, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    line(40, 10 + 150, 40 + 180, 160);
-    RECT task_read = { 40, 160, 40 + 200, 160 + 40 };
-    drawtext(_T("Reading"), &task_read, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    line(40, 10 + 47, 40 + 180, 10 + 50);
+    task_english_ = { 40, 60, 40 + 200, 60 + 40 };
+    drawtext(_T("English"), &task_english_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    line(40, 10 + 97, 40 + 180, 110);
+    task_program_ = { 40, 110, 40 + 200, 110 + 40 };
+    drawtext(_T("Programming"), &task_program_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    line(40, 10 + 147, 40 + 180, 160);
+    task_read_ = { 40, 160, 40 + 200, 160 + 40 };
+    drawtext(_T("Reading"), &task_read_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     
     // 1.2 打卡按钮
     rect_btn_health_ = { 280, 10, 280 + 120, 10 + 40 };
@@ -118,7 +122,8 @@ void UI::Draw()
     // 2. 统计内容展示区域(由上到下自左到右依次包括：月份、星期、网格内容和颜色说明等)
     setfillcolor(WHITE);
     setlinecolor(RGB(238, 238, 242));
-    roundrect(placeholder_, 260-30, win_width - placeholder_, 630-30, 10, 10);
+    display_area_ = { placeholder_, 260 - 30, win_width - placeholder_, 630 - 30 };
+    roundrect(display_area_.left, display_area_.top, display_area_.right, display_area_.bottom, 10, 10);
     
 
     // 绘制网格    
@@ -126,8 +131,9 @@ void UI::Draw()
 
     // 绘制网格左侧的星期和网格上面的月份提示
     settextcolor(BLACK);
-    TCHAR current_month[4] = { 0 };
-    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[now_date_ / 100 % 100].c_str(), -1, current_month, 4);
+    TCHAR current_month[9] = { 0 };
+    std::string tmp = std::to_string(now_date_ / 10000) + " " + months_[now_date_ / 100 % 100] + "\0";
+    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)tmp.c_str(), -1, current_month, 9);
     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     drawtext(_T("<"), &rect_btn_prev_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -309,19 +315,8 @@ void UI::Run()
                     tmp_year = (tmp_month < 1) ? (tmp_year - 1) : tmp_year;
                     tmp_month = (tmp_month == 0) ? (tmp_month + 1) : (tmp_month % 12);;
                     display_month_ = tmp_year * 100 + tmp_month;
-                    // 读取上一月的数据
-                    GetGridData(display_month_ / 100, display_month_ % 100);
-                    DrawGrid();
-                    // Updated in 11/17/2022: 修复切换上下月时"月份"背景及字体颜色显示异常的问题
-                    setfillcolor(WHITE);
-                    settextcolor(BLACK);
-                    solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
-                    TCHAR current_month[4] = { 0 };                    
-                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);
-                    drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                    // 先清空状态展示区域信息
-                    RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
-                    solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
+                    
+                    ShowMonthGrid(display_month_);
                 }
             }
             else if (PtInRect(&rect_btn_next_, mouse))
@@ -336,19 +331,8 @@ void UI::Run()
                     tmp_year = (tmp_month > 12) ? (tmp_year + 1) : tmp_year;
                     tmp_month = (tmp_month == 12) ? (tmp_month % 12 + 1) : (tmp_month % 12);
                     display_month_ = tmp_year * 100 + tmp_month;
-                    // 读取下一月的数据
-                    GetGridData(display_month_ / 100, display_month_ % 100);
-                    DrawGrid();
-                    // Updated in 11/17/2022: 修复切换上下月时"月份"背景及字体颜色显示异常的问题
-                    setfillcolor(WHITE);
-                    settextcolor(BLACK);
-                    solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
-                    TCHAR current_month[4] = { 0 };
-                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)months_[display_month_ % 100].c_str(), -1, current_month, 4);                    
-                    drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                    // 先清空状态展示区域信息
-                    RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
-                    solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
+                    
+                    ShowMonthGrid(display_month_);
                 }
             }
             else if (PtInRect(&rect_btn_makeup_, mouse))
@@ -386,82 +370,124 @@ void UI::Run()
         case WM_RBUTTONUP:  // 右键单击在底部状态区域显示当天打卡信息        
         case WM_LBUTTONDBLCLK:  // 左键双击网格,可修改当前网格对应日期的打卡信息
         {
-            // 计算鼠标所在区域对应网格中的坐标
-            int col_in_grid = -1;
-            int row_in_grid = -1;
-            bool is_stop = false;
-            for (int i = 0; i < grid_block_rect_[0].size(); ++i)
+            if (PtInRect(&task_name_area_,mouse) && msg.message == WM_LBUTTONDBLCLK)         // 处理打卡区域的双击
             {
-                for (int j = 0; j < grid_block_rect_.size(); ++j)
+                /*
+                // 双击任务名称进行修改 (因为没做持久化,故该功能目前并没实际用处)
+                setorigin(placeholder_, placeholder_ / 2);
+                LOGFONT old_style;
+                gettextstyle(&old_style);
+
+                settextstyle(32, 0, _T("Times New Roman"));
+                settextcolor(0x9eaebb);
+                setfillcolor(RGB(242, 242, 241));
+
+                TCHAR input[32] = { 0 };
+                InputBox(input, 32, _T("请输入准备打卡的任务名称（不能超过30个英文字符）."));
+                // TODO: 1.暂未做输入数据的可靠性验证(如非法长度等);2.修改名称后应该持久化,以便重启后仍生效(暂未做);
+                if (PtInRect(&task_health_, mouse))
                 {
-                    if (PtInRect(&grid_block_rect_[j][i], mouse))
+                    solidrectangle(task_health_.left, task_health_.top, task_health_.right, task_health_.bottom);
+                    drawtext(input, &task_health_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                }
+                else if (PtInRect(&task_english_, mouse))
+                {
+                    solidrectangle(task_english_.left, task_english_.top, task_english_.right, task_english_.bottom);
+                    drawtext(input, &task_english_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                }
+                else if (PtInRect(&task_program_, mouse))
+                {
+                    solidrectangle(task_program_.left, task_program_.top, task_program_.right, task_program_.bottom);
+                    drawtext(input, &task_program_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                }
+                else if (PtInRect(&task_read_, mouse))
+                {
+                    solidrectangle(task_read_.left, task_read_.top, task_read_.right, task_read_.bottom);
+                    drawtext(input, &task_read_, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                }
+                setorigin(0, 0);
+                settextstyle(&old_style);
+                */
+            }
+            else if (PtInRect(&display_area_,mouse))    // 处理网格部分的单/双击
+            {
+                // 计算鼠标所在区域对应网格中的坐标
+                int col_in_grid = -1;
+                int row_in_grid = -1;
+                bool is_stop = false;
+                for (int i = 0; i < grid_block_rect_[0].size(); ++i)
+                {
+                    for (int j = 0; j < grid_block_rect_.size(); ++j)
                     {
-                        col_in_grid = i;
-                        row_in_grid = j;
-                        is_stop = true;
+                        if (PtInRect(&grid_block_rect_[j][i], mouse))
+                        {
+                            col_in_grid = i;
+                            row_in_grid = j;
+                            is_stop = true;
+                            break;
+                        }
+                    }
+                    if (is_stop)
+                    {
                         break;
                     }
                 }
+
+                // 先清空状态展示区域信息
+                RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
+                solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
+
                 if (is_stop)
                 {
-                    break;
-                }
-            }
-
-            // 先清空状态展示区域信息
-            RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
-            solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
-
-            if (is_stop)
-            {
-                settextcolor(BLACK);
-                // 获取网格点对应的日期
-                int index = row_in_grid * grid_columns_ + col_in_grid;
-                int date = coord_date_hash_[index];
-                if (msg.message == WM_LBUTTONDBLCLK && date >= now_date_)
-                {
-                    break;
-                }
-                // 获取网格点对应日期上的任务信息
-                std::ostringstream oss;
-                oss << "0x" << std::setfill('0') << std::setw(4) << std::hex << grid_[row_in_grid][col_in_grid];
-                std::string tasks = oss.str();
-                std::string str = " " + std::to_string(date) + " - " + tasks;
-                // 展示的信息
-                TCHAR content[32] = { 0 };  
-                
-                if (msg.message == WM_RBUTTONUP)
-                {
-                    // 右键单击时在底部状态区域显示对应日期及打卡信息
-                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, content, 32);
-                    drawtext(content, &rect_info, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-                    break;
-                }
-                
-                // 下面是对左键双键的处理:可修改点击的网格对应日期的打卡信息
-                std::string tmp = "修改" + str + " 的打卡信息";
-                MultiByteToWideChar(CP_ACP, 0, (LPCSTR)tmp.c_str(), -1, content, 32);
-
-                TCHAR input[32] = { 0 };
-                InputBox(input, 32, _T("请按 \"0x1101\" 的格式输入待修改的打卡信息."), content);
-                std::string info = sean::Function::TcharToString(input);
-                std::regex pattern("0[xX][0-9a-fA-F]+");
-                if (std::regex_match(info, pattern))
-                {
-                    int tasks = strtol(info.substr(0, 6).c_str(), nullptr, 16);
-                    POINT point = GetGridCoord(date);
-                    GridInfo grid;
-                    grid.date = date;
-                    grid.x = point.x;
-                    grid.y = point.y;
-                    grid.tasks = tasks;
-                    db_.Put(grid);
-                    if (display_month_ == (date / 100))
+                    settextcolor(BLACK);
+                    // 获取网格点对应的日期
+                    int index = row_in_grid * grid_columns_ + col_in_grid;
+                    int date = coord_date_hash_[index];
+                    if (msg.message == WM_LBUTTONDBLCLK && date >= now_date_)
                     {
-                        // 补打卡的月份是当前显示月,则显示补打卡的内容
-                        grid_[grid.x][grid.y] = grid.tasks;
+                        break;
                     }
-                    DrawGrid();
+                    // 获取网格点对应日期上的任务信息
+                    std::ostringstream oss;
+                    oss << "0x" << std::setfill('0') << std::setw(4) << std::hex << grid_[row_in_grid][col_in_grid];
+                    std::string tasks = oss.str();
+                    std::string str = " " + std::to_string(date) + " - " + tasks;
+                    // 展示的信息
+                    TCHAR content[32] = { 0 };
+
+                    if (msg.message == WM_RBUTTONUP)
+                    {
+                        // 右键单击时在底部状态区域显示对应日期及打卡信息
+                        MultiByteToWideChar(CP_ACP, 0, (LPCSTR)str.c_str(), -1, content, 32);
+                        drawtext(content, &rect_info, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                        break;
+                    }
+
+                    // 下面是对左键双键的处理:可修改点击的网格对应日期的打卡信息
+                    std::string tmp = "修改" + str + " 的打卡信息";
+                    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)tmp.c_str(), -1, content, 32);
+
+                    TCHAR input[32] = { 0 };
+                    InputBox(input, 32, _T("请按 \"0x1101\" 的格式输入待修改的打卡信息."), content);
+                    std::string info = sean::Function::TcharToString(input);
+                    std::regex pattern("0[xX][0-9a-fA-F]+");
+                    if (std::regex_match(info, pattern))
+                    {
+                        int tasks = strtol(info.substr(0, 6).c_str(), nullptr, 16);
+                        POINT point = GetGridCoord(date);
+                        GridInfo grid;
+                        grid.date = date;
+                        grid.x = point.x;
+                        grid.y = point.y;
+                        grid.tasks = tasks;
+                        db_.Put(grid);
+                        if (display_month_ == (date / 100))
+                        {
+                            // 补打卡的月份是当前显示月,则显示补打卡的内容
+                            grid_[grid.x][grid.y] = grid.tasks;
+                        }
+                        DrawGrid();
+                    }
                 }
             }
             break;
@@ -477,7 +503,7 @@ void UI::DrawGrid()
 {
     setorigin(grid_x_, grid_y_);
     LOGFONT old_style;
-    gettextstyle(&old_style);
+    gettextstyle(&old_style);    
 
     // 每次绘制前将坐标与日期的哈希表清空
     memset(&coord_date_hash_[0], 0, coord_date_hash_.size() * sizeof(int));
@@ -680,6 +706,24 @@ void UI::DrawUpdate()
         outtextxy(placeholder_ + 10, placeholder_ + 160, _T("√"));
     }
     settextcolor(old);
+}
+
+void UI::ShowMonthGrid(int month)
+{
+    // 读取下一月的数据
+    GetGridData(display_month_ / 100, display_month_ % 100);
+    DrawGrid();
+    // Updated in 11/17/2022: 修复切换上下月时"月份"背景及字体颜色显示异常的问题
+    setfillcolor(WHITE);
+    settextcolor(BLACK);
+    solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
+    TCHAR current_month[9] = { 0 };
+    std::string tmp = std::to_string(display_month_ / 100) + " " + months_[display_month_ % 100] + "\0";
+    MultiByteToWideChar(CP_ACP, 0, (LPCSTR)tmp.c_str(), -1, current_month, 9);
+    drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    // 先清空状态展示区域信息
+    RECT rect_info = { placeholder_, 650, 460 - placeholder_, 650 + 30 };
+    solidrectangle(rect_info.left, rect_info.top, rect_info.right, rect_info.bottom);
 }
 
 } // namespace 

@@ -33,6 +33,11 @@ Development related:
 - `EasyX 20220116`; 
 - LevelDB 
 
+> Note:
+>
+> - `leveldb-r.lib`: the release version of leveldb.lib. Make a copy of it and rename it to "`leveldb.lib` when you are in a release mode. 
+> - `leveldb-d.lib`: the debug version of leveldb.lib. Make a copy of it and rename it to `leveldb.lib` when you are in a debug mode. 
+
 # Usage
 
 - Clocking in：
@@ -42,15 +47,21 @@ Development related:
 
 - Reset:
 
-  You cannot clock in the same task repeatedly. If you want to change the result, you can click the `Reset` button to clear all the clocked-in tasks.
+  You cannot clock in the same task repeatedly. If you want to change the result, you can click the `Reset` button to clear all the clocked-in tasks. Note that this function is available only for the current date.
 
 - Display historical data：
 
   After starting the tool, it will display the historical information, if there is any.
   
+  The history data is stored in the "db" folder. You can copy and move the "db" folder and 
+  
 - Make-up:
 
-  If you completed several tasks but forgot to lock in, you can make up for it by clicking the `M` button (which means `make up`). By typing into the date and tasks with the format of `20220411;0x1101`, you can clock-in the specific date again. Note that `0x1101` means that you have finished the first, second, and fourth tasks. 
+  If you completed several tasks but forgot to lock in, you can make up for it by clicking the `MakeUp` button. By typing into the date and tasks with the format of `20220411;0x1101`, you can clock-in the specific date again. Note that `0x1101` means that you have finished the first, second, and fourth tasks. 
+
+> Note:
+>
+> - If you want to redefine the names of the tasks, a better way is to directly modify the names of "Health, English, Programming, Reading" in the beginning of the UI::Draw() function in clock_in.cpp file, and to rebuild the whole project.
 
 # Screenshots
 
@@ -82,6 +93,9 @@ Please refer to the pictures in the `./screenshots/` directory for other screens
   - Add modifying Clock-In info function: 
     - way #1: by clicking the "MakeUp" button and inputting the new info with the form of "20221118;0x1101".
     - way #2: by double clicking on a grid and inputting the new info with the form of "0x1101".
+- Updated 11/19/2022
+  - Show the year information before the month. (old: Nov; new: 2022 Nov)
+
 
 
 # Upcoming Changes
