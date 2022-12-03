@@ -313,7 +313,7 @@ void UI::Run()
                     int tmp_month = display_month_ % 100;
                     tmp_month--;
                     tmp_year = (tmp_month < 1) ? (tmp_year - 1) : tmp_year;
-                    tmp_month = (tmp_month == 0) ? (tmp_month + 1) : (tmp_month % 12);;
+                    tmp_month = (tmp_month == 0) ? 12 : (tmp_month % 12);;
                     display_month_ = tmp_year * 100 + tmp_month;
                     
                     ShowMonthGrid(display_month_);
@@ -329,7 +329,7 @@ void UI::Run()
                     int tmp_month = display_month_ % 100;
                     tmp_month++;
                     tmp_year = (tmp_month > 12) ? (tmp_year + 1) : tmp_year;
-                    tmp_month = (tmp_month == 12) ? (tmp_month % 12 + 1) : (tmp_month % 12);
+                    tmp_month = (tmp_month == 12) ? tmp_month : (tmp_month % 12);
                     display_month_ = tmp_year * 100 + tmp_month;
                     
                     ShowMonthGrid(display_month_);
@@ -638,7 +638,8 @@ void UI::GetGridData(int year, int month)
     int first = year * 10000 + month * 100 + 1;        // 该月第一天
     int days = sean::Function::GetMonthDays(year, month);
     // 该月最后一天;若是当月,则最后一天是当天(因为当天以后肯定没数据)
-    int last = (now_date_ / 100 % 100 == month) ? now_date_ : year * 10000 + month * 100 + days;
+    // Updated 2022/12/03 判断当月时添加"年份需相等"的前提;避免查2021/12数据却给出2022/12数据的错误
+    int last = (year == now_date_ / 10000 && now_date_ / 100 % 100 == month) ? now_date_ : year * 10000 + month * 100 + days;
 
     // 从数据库中更新当月Grid数据前,先清空grid_
     for (int i = 0; i < grid_.size(); ++i)
@@ -711,14 +712,14 @@ void UI::DrawUpdate()
 void UI::ShowMonthGrid(int month)
 {
     // 读取下一月的数据
-    GetGridData(display_month_ / 100, display_month_ % 100);
+    GetGridData(month / 100, month % 100);
     DrawGrid();
     // Updated in 11/17/2022: 修复切换上下月时"月份"背景及字体颜色显示异常的问题
     setfillcolor(WHITE);
     settextcolor(BLACK);
     solidrectangle(rect_month_.left, rect_month_.top, rect_month_.right, rect_month_.bottom);
     TCHAR current_month[9] = { 0 };
-    std::string tmp = std::to_string(display_month_ / 100) + " " + months_[display_month_ % 100] + "\0";
+    std::string tmp = std::to_string(month / 100) + " " + months_[month % 100] + "\0";
     MultiByteToWideChar(CP_ACP, 0, (LPCSTR)tmp.c_str(), -1, current_month, 9);
     drawtext(current_month, &rect_month_, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     // 先清空状态展示区域信息
